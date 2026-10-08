@@ -40,5 +40,5 @@ tasks.named('processResources') {
 }
 jar {
     manifest.attributes('MixinConfigs': 'modernspace.mixins.json')
-    from(project.files('LICENSE')) { into 'META-INF' }
+    from(project.files('LICENSE', 'COPYING', 'THIRD_PARTY_NOTICES.md')) { into 'META-INF' }
 }
