@@ -223,6 +223,21 @@ public final class PersonalSpaceConfig {
     }
 
     /** Expands configured rules to existing modern block IDs, preserving order and dropping invalid entries. */
+    /**
+     * Wildcard rules only take full cubes: stairs, slabs, buttons, plates, fences, walls, panes, doors and other
+     * partial blocks of a mod are left out (they make no sense as world layers).
+     */
+    private static boolean isFullCube(ResourceLocation id) {
+        Block block = BuiltInRegistries.BLOCK.get(id);
+        try {
+            var state = block.defaultBlockState();
+            return Block.isShapeFullBlock(state.getShape(net.minecraft.world.level.EmptyBlockGetter.INSTANCE,
+                    net.minecraft.core.BlockPos.ZERO));
+        } catch (RuntimeException e) {
+            return false;
+        }
+    }
+
     public static Set<String> expand(List<String> rules) {
         Set<String> result = new LinkedHashSet<>();
         for (String raw : rules) {
@@ -244,6 +259,7 @@ public final class PersonalSpaceConfig {
                                 .map(java.util.regex.Pattern::quote).collect(java.util.stream.Collectors.joining(".*")));
                 BuiltInRegistries.BLOCK.keySet().stream()
                         .filter(id -> id.getNamespace().equals(namespace) && glob.matcher(id.getPath()).matches())
+                        .filter(PersonalSpaceConfig::isFullCube)
                         .sorted()
                         .forEach(id -> addIfExists(result, id.toString()));
                 continue;
@@ -252,6 +268,7 @@ public final class PersonalSpaceConfig {
                 String namespace = rule.substring(0, rule.length() - 2);
                 BuiltInRegistries.BLOCK.keySet().stream()
                         .filter(id -> id.getNamespace().equals(namespace))
+                        .filter(PersonalSpaceConfig::isFullCube)
                         .sorted()
                         .forEach(id -> addIfExists(result, id.toString()));
                 continue;
