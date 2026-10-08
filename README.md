@@ -49,8 +49,7 @@ ModernSpace stands on the work of others. Thank you to:
   boundaries, center marker), portal, teleport and relinking logic, `/pspace` commands, the editor GUI design and
   its widget sheet (`widgets.png`, copied unchanged). Created by **eigenraven**, with contributions from
   **Dream-Master**, **ABKQPO**, **Caedis**, **alppp**, **Eldrinn-Elantey**, **Kiwi233**, **serenibyss**,
-  **paulbatum**, **UltraProdigy** and the GTNH team. PersonalSpace itself continues the idea of the
-  **UtilityWorlds** mod.
+  **paulbatum**, **UltraProdigy** and the GTNH team.
 - **[Crazerium/PersonalSpace-Unofficial](https://github.com/Crazerium/PersonalSpace-Unofficial)** (LGPL-3.0) by
   **Crazerium**, a Forge 1.20.1 port whose chunk generator API structure was used as an implementation reference.
 - **[Infiniverse](https://github.com/Commoble/infiniverse)** (MIT) by **Commoble**, the runtime dimension API
