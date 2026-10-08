@@ -1,0 +1,44 @@
+plugins {
+    id 'java-library'
+    id 'net.neoforged.moddev.legacyforge' version '2.0.141'
+}
+version = mod_version
+group = 'com.raishxn.modernspace'
+base { archivesName = 'modernspace' }
+java.toolchain.languageVersion = JavaLanguageVersion.of(17)
+legacyForge {
+    version = '1.20.1-47.4.20'
+    mods { modernspace { sourceSet sourceSets.main } }
+    runs {
+        client { client() }
+        server { server() }
+    }
+}
+mixin {
+    add sourceSets.main, 'modernspace.refmap.json'
+    config 'modernspace.mixins.json'
+}
+repositories {
+    mavenCentral()
+    maven {
+        name = 'Commoble'
+        url = 'https://maven.commoble.net/'
+        content { includeGroup 'commoble.infiniverse' }
+    }
+}
+dependencies {
+    modImplementation('commoble.infiniverse:infiniverse-1.20.1:1.0.0.5') { transitive = false }
+    annotationProcessor 'org.spongepowered:mixin:0.8.5:processor'
+}
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+    options.release = 17
+}
+tasks.named('processResources') {
+    inputs.property 'version', project.version
+    filesMatching('META-INF/mods.toml') { expand version: project.version }
+}
+jar {
+    manifest.attributes('MixinConfigs': 'modernspace.mixins.json')
+    from(project.files('LICENSE')) { into 'META-INF' }
+}

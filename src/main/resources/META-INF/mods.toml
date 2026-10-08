@@ -1,0 +1,30 @@
+modLoader="javafml"
+loaderVersion="[47,)"
+license="LGPL-3.0-or-later"
+issueTrackerURL="https://github.com/Raishxn/ModernSpace/issues"
+
+[[mods]]
+modId="modernspace"
+version="${version}"
+displayName="ModernSpace"
+authors="Raishxn"
+description='''Personal dimensions for modern Minecraft: a Forge 1.20.1 port of GTNH PersonalSpace.'''
+
+[[dependencies.modernspace]]
+    modId="forge"
+    mandatory=true
+    versionRange="[47,)"
+    ordering="NONE"
+    side="BOTH"
+[[dependencies.modernspace]]
+    modId="minecraft"
+    mandatory=true
+    versionRange="[1.20.1,1.20.2)"
+    ordering="NONE"
+    side="BOTH"
+[[dependencies.modernspace]]
+    modId="infiniverse"
+    mandatory=true
+    versionRange="[1.0.0.5,)"
+    ordering="NONE"
+    side="BOTH"
