@@ -74,7 +74,8 @@ public final class PersonalSpaceConfig {
         }
 
         /**
-         * GTNA default: vanilla building blocks plus Xtones and Factory Blocks when installed. The original only allows
+         * Default: vanilla building blocks plus Xtones, Factory Blocks, GregTech CEu decorative blocks, GTO ABS casings
+         * and AntiBlocks Rechiseled when installed. The original only allows
          * a few layer blocks and wool for decorations; servers can narrow this list again.
          */
         static List<String> buildingBlocks() {
@@ -117,6 +118,16 @@ public final class PersonalSpaceConfig {
             list.add("xtonesreworked:*");
             list.add("xtones:*");
             list.add("factory_blocks:*");
+            // GregTech CEu decorative blocks: lamps, metal sheets, concrete and stone variants.
+            list.add("gtceu:*_lamp");
+            list.add("gtceu:*_metal_sheet");
+            list.add("gtceu:*concrete*");
+            list.add("gtceu:*marble*");
+            list.add("gtceu:*granite*");
+            list.add("gtceu:*basalt*");
+            // GregTech Odyssey ABS casings and AntiBlocks Rechiseled.
+            list.add("gtocore:abs_*_casing");
+            list.add("antiblocksrechiseled:*");
             return List.copyOf(list);
         }
 
@@ -222,6 +233,19 @@ public final class PersonalSpaceConfig {
                 if (tagId == null) continue;
                 TagKey<Block> tag = TagKey.create(Registries.BLOCK, tagId);
                 BuiltInRegistries.BLOCK.getTagOrEmpty(tag).forEach(holder -> addHolder(result, holder));
+                continue;
+            }
+            int colon = rule.indexOf(':');
+            if (colon > 0 && rule.indexOf('*') > colon && !rule.endsWith(":*")) {
+                // Glob on the path, e.g. gtceu:*_lamp.
+                String namespace = rule.substring(0, colon);
+                java.util.regex.Pattern glob = java.util.regex.Pattern.compile(
+                        java.util.Arrays.stream(rule.substring(colon + 1).split("\\*", -1))
+                                .map(java.util.regex.Pattern::quote).collect(java.util.stream.Collectors.joining(".*")));
+                BuiltInRegistries.BLOCK.keySet().stream()
+                        .filter(id -> id.getNamespace().equals(namespace) && glob.matcher(id.getPath()).matches())
+                        .sorted()
+                        .forEach(id -> addIfExists(result, id.toString()));
                 continue;
             }
             if (rule.endsWith(":*")) {
