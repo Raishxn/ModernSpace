@@ -49,6 +49,8 @@ public final class PersonalSpaceConfig {
         public Integer firstDimensionId;
         public Boolean debugLogging;
         public Boolean useBlockEventChecks;
+        /** GregTech CEu solar panels, solar covers and solar boilers produce in personal spaces. */
+        public Boolean gtceuSolarPanels;
         public Integer dropdownMaxVisibleRows;
         public Integer dropdownMaxVisibleColumns;
 
@@ -68,6 +70,7 @@ public final class PersonalSpaceConfig {
             values.firstDimensionId = 180;
             values.debugLogging = false;
             values.useBlockEventChecks = true;
+            values.gtceuSolarPanels = true;
             values.dropdownMaxVisibleRows = 6;
             values.dropdownMaxVisibleColumns = 12;
             return values;
@@ -141,6 +144,7 @@ public final class PersonalSpaceConfig {
             if (firstDimensionId == null || firstDimensionId < 1) firstDimensionId = defaults.firstDimensionId;
             if (debugLogging == null) debugLogging = defaults.debugLogging;
             if (useBlockEventChecks == null) useBlockEventChecks = defaults.useBlockEventChecks;
+            if (gtceuSolarPanels == null) gtceuSolarPanels = defaults.gtceuSolarPanels;
             if (dropdownMaxVisibleRows == null) dropdownMaxVisibleRows = defaults.dropdownMaxVisibleRows;
             if (dropdownMaxVisibleColumns == null) dropdownMaxVisibleColumns = defaults.dropdownMaxVisibleColumns;
             dropdownMaxVisibleRows = Math.max(1, Math.min(20, dropdownMaxVisibleRows));
@@ -196,6 +200,10 @@ public final class PersonalSpaceConfig {
 
     public static boolean debugLogging() {
         return values.debugLogging;
+    }
+
+    public static boolean gtceuSolarPanels() {
+        return values.gtceuSolarPanels;
     }
 
     public static boolean useBlockEventChecks() {

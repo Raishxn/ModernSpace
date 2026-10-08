@@ -17,6 +17,7 @@ legacyForge {
 mixin {
     add sourceSets.main, 'modernspace.refmap.json'
     config 'modernspace.mixins.json'
+    config 'modernspace.compat.mixins.json'
 }
 repositories {
     mavenCentral()
@@ -39,6 +40,6 @@ tasks.named('processResources') {
     filesMatching('META-INF/mods.toml') { expand version: project.version }
 }
 jar {
-    manifest.attributes('MixinConfigs': 'modernspace.mixins.json')
+    manifest.attributes('MixinConfigs': 'modernspace.mixins.json,modernspace.compat.mixins.json')
     from(project.files('LICENSE', 'COPYING', 'THIRD_PARTY_NOTICES.md')) { into 'META-INF' }
 }
