@@ -4,6 +4,18 @@ All notable changes to this project will be documented in this file.
 
 ---
 
+## [0.2.0] - 2026-10-09
+
+### ✨ New
+* **Creative tab**: ModernSpace now has its own creative tab ("Personal Space") with the portal.
+* **Replace a layer's block**: each layer in the editor has a **⇄** button to swap its block while keeping its height (e.g. the white concrete of the roads preset).
+* **GregTech CEu lamp variants**: lamps can be picked in all 8 variants — normal or inverted, with or without light, with or without bloom — with the right icon and name. Presets store them as `gtceu:white_lamp@inverted=true+bloom=false`; the `id@property=value` syntax works for any block in layers, boundaries, roads and center.
+
+### 🐛 Fixes
+* **Ores are never allowed**: blocks ending in `_ore` or tagged `#forge:ores` (e.g. GTCEu ores in granite, marble and basalt) are rejected regardless of the config, also server side.
+
+---
+
 ## [0.1.0] - 2026-10-09
 
 ### Initial Release — Personal Dimensions for Modern Minecraft (Forge 1.20.1)
