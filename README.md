@@ -1,7 +1,5 @@
 <div align="center">
-  <img src="banner.png" alt="ModernSpace Banner" width="100%">
   <br><br>
-  <img src="logo.gif" alt="ModernSpace Logo" width="180" height="180">
   <h1>ModernSpace</h1>
   <p><strong>Personal pocket dimensions for modern Minecraft (Forge 1.20.1)</strong></p>
 
@@ -11,6 +9,7 @@
     <img src="https://img.shields.io/badge/Forge-47.x-df7020?style=for-the-badge" alt="Forge 47.x">
     <a href="https://www.curseforge.com/minecraft/mc-mods/infiniverse"><img src="https://img.shields.io/badge/Dependency-Infiniverse-0284c7?style=for-the-badge" alt="Requires Infiniverse"></a>
     <a href="LICENSE"><img src="https://img.shields.io/badge/License-LGPL--3.0-blue?style=for-the-badge" alt="License LGPL-3.0"></a>
+  <img src="banner.png" alt="ModernSpace Banner" width="100%">
   </p>
 </div>
 
