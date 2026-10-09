@@ -3,3 +3,6 @@ build/
 run/
 *.iml
 .idea/
+
+__pycache__/
+*.pyc

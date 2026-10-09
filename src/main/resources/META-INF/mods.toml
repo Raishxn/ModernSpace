@@ -7,6 +7,7 @@ issueTrackerURL="https://github.com/Raishxn/ModernSpace/issues"
 modId="modernspace"
 version="${version}"
 displayName="ModernSpace"
+logoFile="icon.png"
 authors="Raishxn"
 description='''Personal dimensions for modern Minecraft: a Forge 1.20.1 port of GTNH PersonalSpace.'''
 
