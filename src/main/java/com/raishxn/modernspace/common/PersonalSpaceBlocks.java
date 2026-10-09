@@ -5,6 +5,10 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.state.properties.BooleanProperty;
+import net.minecraft.world.level.block.state.properties.Property;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.locale.Language;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -67,6 +71,11 @@ public final class PersonalSpaceBlocks {
         if (name == null) return "";
         String trimmed = name.trim();
         if (trimmed.isEmpty()) return "";
+        int at = trimmed.indexOf(STATE_SEPARATOR);
+        if (at >= 0) {
+            String base = normalize(trimmed.substring(0, at));
+            return base == null || base.isEmpty() ? base : base + trimmed.substring(at);
+        }
         int first = trimmed.indexOf(':');
         int last = trimmed.lastIndexOf(':');
         if (first > 0 && last > first) {
@@ -82,21 +91,112 @@ public final class PersonalSpaceBlocks {
         return mapped != null ? mapped : trimmed;
     }
 
+    /** Separates a block ID from block state values: {@code gtceu:white_lamp@inverted=true+bloom=false}. */
+    public static final char STATE_SEPARATOR = '@';
+
+    /** GregTech CEu lamp properties offered as separate entries (same choices as the lamp items). */
+    private static final String[] LAMP_PROPERTIES = { "inverted", "bloom", "lit" };
+
     /** @return the block for a modern or legacy name, or {@code null} when it does not exist. */
     public static Block block(String name) {
         String id = normalize(name);
         if (id == null || id.isEmpty()) return null;
+        int at = id.indexOf(STATE_SEPARATOR);
+        if (at >= 0) id = id.substring(0, at);
         ResourceLocation location = ResourceLocation.tryParse(id);
         if (location == null) return null;
         return BuiltInRegistries.BLOCK.getOptional(location).orElse(null);
     }
 
-    /** @return the default state, or {@code null} for empty, air or unknown blocks. */
+    /** @return the configured state, or {@code null} for empty, air or unknown blocks. */
     public static BlockState solidState(String name) {
         Block block = block(name);
         if (block == null || block == Blocks.AIR) return null;
-        return block.defaultBlockState();
+        return state(block, name);
     }
+
+    /** Applies the {@code @prop=value+prop=value} suffix of a name; unknown properties or values are ignored. */
+    public static BlockState state(Block block, String name) {
+        BlockState state = block.defaultBlockState();
+        int at = name == null ? -1 : name.indexOf(STATE_SEPARATOR);
+        if (at < 0) return state;
+        for (String pair : name.substring(at + 1).split("\\+")) {
+            int eq = pair.indexOf('=');
+            if (eq <= 0) continue;
+            Property<?> property = block.getStateDefinition().getProperty(pair.substring(0, eq).trim());
+            if (property != null) state = with(state, property, pair.substring(eq + 1).trim());
+        }
+        return state;
+    }
+
+    private static <T extends Comparable<T>> BlockState with(BlockState state, Property<T> property, String value) {
+        return property.getValue(value).map(v -> state.setValue(property, v)).orElse(state);
+    }
+
+    /** @return whether the block is a GregTech CEu lamp (inverted, bloom and lit flags). */
+    public static boolean isLamp(Block block) {
+        var definition = block.getStateDefinition();
+        for (String name : LAMP_PROPERTIES) {
+            if (!(definition.getProperty(name) instanceof BooleanProperty)) return false;
+        }
+        return "gtceu".equals(BuiltInRegistries.BLOCK.getKey(block).getNamespace());
+    }
+
+    /** All eight lamp variants, the plain ID first (normal lamp with light and bloom). */
+    public static List<String> lampVariants(String id) {
+        List<String> result = new ArrayList<>();
+        for (int mask = 0; mask < 8; mask++) {
+            boolean inverted = (mask & 1) != 0, noBloom = (mask & 2) != 0, noLight = (mask & 4) != 0;
+            List<String> parts = new ArrayList<>();
+            if (inverted) parts.add("inverted=true");
+            if (noBloom) parts.add("bloom=false");
+            if (noLight) parts.add("lit=false");
+            result.add(parts.isEmpty() ? id : id + STATE_SEPARATOR + String.join("+", parts));
+        }
+        return result;
+    }
+
+    /** Item shown for a name; GregTech lamps keep their variant in the item NBT. */
+    public static ItemStack displayStack(String name) {
+        Block block = block(name);
+        if (block == null) return ItemStack.EMPTY;
+        ItemStack stack = new ItemStack(block.asItem());
+        if (!stack.isEmpty() && isLamp(block)) {
+            BlockState state = state(block, name);
+            for (String property : LAMP_PROPERTIES) {
+                stack.getOrCreateTag().putBoolean(property,
+                        state.getValue((BooleanProperty) block.getStateDefinition().getProperty(property)));
+            }
+        }
+        return stack;
+    }
+
+    /** Human readable suffix for a lamp variant, e.g. {@code (inverted, no bloom)}. */
+    public static String variantSuffix(String name) {
+        Block block = block(name);
+        if (block == null || !isLamp(block) || name.indexOf(STATE_SEPARATOR) < 0) return "";
+        BlockState state = state(block, name);
+        List<String> parts = new ArrayList<>();
+        if (state.getValue((BooleanProperty) block.getStateDefinition().getProperty("inverted")))
+            parts.add(Language.getInstance().getOrDefault("gui.personalWorld.lamp.inverted"));
+        if (!state.getValue((BooleanProperty) block.getStateDefinition().getProperty("lit")))
+            parts.add(Language.getInstance().getOrDefault("gui.personalWorld.lamp.noLight"));
+        if (!state.getValue((BooleanProperty) block.getStateDefinition().getProperty("bloom")))
+            parts.add(Language.getInstance().getOrDefault("gui.personalWorld.lamp.noBloom"));
+        return parts.isEmpty() ? "" : " (" + String.join(", ", parts) + ")";
+    }
+
+    /** Ore blocks are never allowed in a personal dimension, whatever the config says. */
+    public static boolean isOre(Block block) {
+        ResourceLocation key = BuiltInRegistries.BLOCK.getKey(block);
+        String path = key.getPath();
+        if (path.endsWith("_ore") || path.endsWith("ores") || path.contains("_ore_")) return true;
+        if (block.defaultBlockState().is(ORES)) return true;
+        return false;
+    }
+
+    private static final net.minecraft.tags.TagKey<Block> ORES = net.minecraft.tags.TagKey.create(
+            net.minecraft.core.registries.Registries.BLOCK, ResourceLocation.fromNamespaceAndPath("forge", "ores"));
 
     public static boolean isAir(String name) {
         Block block = block(name);

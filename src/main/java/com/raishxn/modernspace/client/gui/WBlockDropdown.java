@@ -432,8 +432,9 @@ public class WBlockDropdown extends Widget {
         for (String id : blockIds) {
             Block block = PersonalSpaceBlocks.block(id);
             if (block == null) continue;
-            ItemStack stack = new ItemStack(block.asItem());
-            String name = stack.isEmpty() ? block.getName().getString() : stack.getHoverName().getString();
+            ItemStack stack = PersonalSpaceBlocks.displayStack(id);
+            String name = (stack.isEmpty() ? block.getName().getString() : stack.getHoverName().getString()) +
+                    PersonalSpaceBlocks.variantSuffix(id);
             entries.add(new BlockEntry(id, stack, name + " (" + id + ")"));
         }
         return entries;

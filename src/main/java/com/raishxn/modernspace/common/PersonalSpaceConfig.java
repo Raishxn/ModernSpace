@@ -296,10 +296,18 @@ public final class PersonalSpaceConfig {
     }
 
     private static void addHolder(Set<String> result, Holder<Block> holder) {
-        holder.unwrapKey().ifPresent(key -> result.add(key.location().toString()));
+        holder.unwrapKey().ifPresent(key -> addIfExists(result, key.location().toString()));
     }
 
+    /** Ores are always rejected; a plain GregTech lamp ID also adds its inverted, no-light and no-bloom variants. */
     private static void addIfExists(Set<String> result, String id) {
-        if (id != null && !id.isEmpty() && PersonalSpaceBlocks.block(id) != null) result.add(id);
+        if (id == null || id.isEmpty()) return;
+        Block block = PersonalSpaceBlocks.block(id);
+        if (block == null || PersonalSpaceBlocks.isOre(block)) return;
+        if (id.indexOf(PersonalSpaceBlocks.STATE_SEPARATOR) < 0 && PersonalSpaceBlocks.isLamp(block)) {
+            result.addAll(PersonalSpaceBlocks.lampVariants(id));
+        } else {
+            result.add(id);
+        }
     }
 }

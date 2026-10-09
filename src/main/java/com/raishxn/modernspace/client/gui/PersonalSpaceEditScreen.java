@@ -649,13 +649,25 @@ public class PersonalSpaceEditScreen extends Screen {
                 block.addChild(airCount);
                 block.tooltip = Blocks.AIR.getName().getString();
             } else {
-                block.itemStack = new ItemStack(gameBlock.asItem());
+                block.itemStack = PersonalSpaceBlocks.displayStack(layer.block());
                 block.itemStackText = Integer.toString(layer.count());
-                block.tooltip = block.itemStack.isEmpty() ? gameBlock.getName().getString() :
-                        block.itemStack.getHoverName().getString();
+                block.tooltip = (block.itemStack.isEmpty() ? gameBlock.getName().getString() :
+                        block.itemStack.getHoverName().getString()) + PersonalSpaceBlocks.variantSuffix(layer.block());
             }
             presetEditor.addChild(block);
             final int finalIndex = index;
+            // Replaces the block of this layer, keeping its height.
+            WBlockDropdown replace = new WBlockDropdown(new Rectangle(59, 5, 18, 18), true, layerBlockEntries,
+                    WBlockDropdown.findEntryIndex(layerBlockEntries, layer.block()), entry -> {
+                        String id = entry.blockName().isEmpty() ? "minecraft:air" : entry.blockName();
+                        if (PersonalSpaceBlocks.block(id) == null) return;
+                        Layer original = desiredConfig.getMutableLayers().get(finalIndex);
+                        desiredConfig.getMutableLayers().set(finalIndex, new Layer(id, original.count()));
+                        desiredConfig.setLayers(desiredConfig.getLayersAsString());
+                        configToPreset();
+                    });
+            replace.setLabel(tr("gui.personalWorld.button.replace"));
+            replace.setGuiRelativePos(presetEditor.position.x + block.position.x + 59, block.position.y + 5);
             if (index < layers.size() - 1) {
                 block.addChild(new WButton(new Rectangle(-12, 0, 10, 10), "", false, 0, Icons.SMALL_UP, () -> {
                     Collections.swap(desiredConfig.getMutableLayers(), finalIndex, finalIndex + 1);
@@ -684,6 +696,7 @@ public class PersonalSpaceEditScreen extends Screen {
                     generationEnabled ? Icons.PLUS : Icons.LOCK, () -> plusMinus.accept(1)));
             block.addChild(new WButton(new Rectangle(40, 5, 18, 18), "", false, 0,
                     generationEnabled ? Icons.MINUS : Icons.LOCK, () -> plusMinus.accept(-1)));
+            block.addChild(replace);
             for (Widget child : block.children) child.enabled = generationEnabled;
             curY += 30;
         }

@@ -1,4 +1,5 @@
 {
+  "itemGroup.modernspace": "Espaço Pessoal",
   "block.modernspace.personal_space_portal": "Portal de Dimensão Pessoal",
   "modernspace.source.personalspace": "PersonalSpace (GTNH)",
   "chat.overworldPersonalDimension": "Dimensões pessoais só podem ser criadas a partir do Overworld",
@@ -60,5 +61,9 @@
   "commands.pspace.allow-worldgen-change": "%s liberou a geração do mundo da dimensão %d",
   "commands.pspace.reload-config.success": "Configuração recarregada e enviada a todos os clientes.",
   "commands.pspace.reload-config.fail": "Falha ao recarregar a configuração: arquivo inválido ou ausente.",
-  "modernspace.tooltip.source": "Portado de %s"
+  "modernspace.tooltip.source": "Portado de %s",
+  "gui.personalWorld.button.replace": "⇄",
+  "gui.personalWorld.lamp.inverted": "invertida",
+  "gui.personalWorld.lamp.noLight": "sem luz",
+  "gui.personalWorld.lamp.noBloom": "sem bloom"
 }

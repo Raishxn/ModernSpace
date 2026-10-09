@@ -1,4 +1,5 @@
 {
+  "itemGroup.modernspace": "Personal Space",
   "block.modernspace.personal_space_portal": "Personal Dimension Portal",
   "chat.overworldPersonalDimension": "Personal dimensions can only be created from the overworld",
   "chat.personalWorld.badBlocks": "Settings not changed: boundary, gap or center uses a forbidden block.",
@@ -60,5 +61,9 @@
   "gui.personalWorld.vegetation": "Foliage",
   "gui.personalWorld.voidWorld": "Void world",
   "gui.personalWorld.weather": "Weather",
-  "modernspace.tooltip.source": "Ported from %s"
+  "modernspace.tooltip.source": "Ported from %s",
+  "gui.personalWorld.button.replace": "⇄",
+  "gui.personalWorld.lamp.inverted": "inverted",
+  "gui.personalWorld.lamp.noLight": "no light",
+  "gui.personalWorld.lamp.noBloom": "no bloom"
 }
