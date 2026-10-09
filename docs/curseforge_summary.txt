@@ -1,0 +1,5 @@
+# Modrinth Short Description (max 140 chars):
+Personal pocket dimensions for modern Minecraft. Craft a portal, customize layers, biomes, sky, and building lots, and step inside.
+
+# CurseForge Summary (max 255 chars):
+Personal pocket dimensions for modern Minecraft (Forge 1.20.1). Place a portal, tailor your world layers, biomes, skies, weather, and urban building plots with an in-game editor, and step into your private realm.
