@@ -4,7 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ---
 
-## [Unreleased]
+## [0.3.0] - 2026-10-11
+
+### ✨ New
+* **Simplified Chinese** (`zh_cn`) translation.
 
 ### 🐛 Fixed
 * **Extra portal from `/give` and quest rewards**: receiving a Personal Space portal also left a second, real portal
