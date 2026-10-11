@@ -284,7 +284,7 @@ public final class PersonalSpacePortalEntity extends BlockEntity {
         if (tag.contains("active")) active = tag.getBoolean("active");
         if (tag.contains("targetDimension")) {
             ResourceLocation dimension = ResourceLocation.tryParse(tag.getString("targetDimension"));
-            if (dimension != null) targetDimension = dimension;
+            if (dimension != null) targetDimension = GtnaMigration.remapDimension(dimension);
         }
         int[] target = tag.getIntArray("target");
         if (target.length >= 3) targetPos = new BlockPos(target[0], target[1], target[2]);

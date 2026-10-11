@@ -4,7 +4,7 @@
   "compatibilityLevel": "JAVA_17",
   "refmap": "modernspace.refmap.json",
   "minVersion": "0.8",
-  "mixins": ["LevelDataAccessor", "ServerLevelDataAccessor"],
+  "mixins": ["LevelDataAccessor", "LevelStorageAccessMixin", "ServerLevelDataAccessor"],
   "client": ["client.PersonalSpaceClientLevelMixin"],
   "injectors": { "defaultRequire": 1 }
 }

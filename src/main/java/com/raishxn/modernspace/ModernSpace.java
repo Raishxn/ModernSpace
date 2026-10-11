@@ -36,6 +36,9 @@ public final class ModernSpace {
         PersonalSpaceConfig.load();
         PersonalSpaceEvents.register();
         bus.addListener(this::tabs);
+        bus.addListener(com.raishxn.modernspace.common.GtnaMigration::onRegister);
+        net.minecraftforge.common.MinecraftForge.EVENT_BUS
+                .addListener(com.raishxn.modernspace.common.GtnaMigration::onMissingMappings);
         if (FMLEnvironment.dist.isClient()) com.raishxn.modernspace.client.PersonalSpaceClient.init(bus);
     }
 

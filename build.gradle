@@ -12,6 +12,12 @@ legacyForge {
     runs {
         client { client() }
         server { server() }
+        // Server on a copy of an old GTNA world (run-migtest/world) to exercise the GTNA import.
+        migrationTestServer {
+            server()
+            gameDirectory = project.file('run-migtest')
+            programArguments.add('--nogui')
+        }
         gameTestServer {
             type = 'gameTestServer'
             gameDirectory = project.file('run-gametest')

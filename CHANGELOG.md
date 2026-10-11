@@ -4,6 +4,16 @@ All notable changes to this project will be documented in this file.
 
 ---
 
+## [0.3.1] - 2026-10-11
+
+### ✨ New
+* **Import from GregTech Nexus Addon**: worlds that used the Personal Space built into GTNA (0.6.x and older) are
+  imported automatically the first time they open with ModernSpace. Personal dimensions, their settings, portals
+  (blocks, items and their saved destinations) and players standing in a personal dimension all move to ModernSpace.
+  Every file that is rewritten is backed up with a `.modernspace_backup` suffix, a dimension whose number is already
+  used by ModernSpace is left untouched and logged, and the import runs once per world. Nothing runs while a GTNA
+  version that still includes Personal Space is installed. Tested on a GTNA 0.5.2 world with six personal dimensions in the full GregTech Infinity Ascension pack: all six were imported and load as ModernSpace dimensions, and a second start does not import again.
+
 ## [0.3.0] - 2026-10-11
 
 ### ✨ New

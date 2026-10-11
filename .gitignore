@@ -7,3 +7,4 @@ run/
 __pycache__/
 *.pyc
 run-gametest/
+run-migtest/
