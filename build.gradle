@@ -12,6 +12,11 @@ legacyForge {
     runs {
         client { client() }
         server { server() }
+        gameTestServer {
+            type = 'gameTestServer'
+            gameDirectory = project.file('run-gametest')
+            systemProperty('forge.enabledGameTestNamespaces', 'modernspace')
+        }
     }
 }
 mixin {

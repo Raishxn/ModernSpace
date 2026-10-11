@@ -25,6 +25,7 @@ public final class PersonalSpaceEvents {
         MinecraftForge.EVENT_BUS.addListener(PersonalSpaceEvents::levelLoad);
         MinecraftForge.EVENT_BUS.addListener(PersonalSpaceEvents::levelUnload);
         MinecraftForge.EVENT_BUS.addListener(PersonalSpaceEvents::serverStarted);
+        MinecraftForge.EVENT_BUS.addListener(PersonalSpacePortalItem::onEntityJoin);
     }
 
     /**

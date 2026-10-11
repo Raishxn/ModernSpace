@@ -4,6 +4,17 @@ All notable changes to this project will be documented in this file.
 
 ---
 
+## [Unreleased]
+
+### 🐛 Fixed
+* **Extra portal from `/give` and quest rewards**: receiving a Personal Space portal also left a second, real portal
+  on the ground. The dropped portal now stays a regular item entity (still fire-proof and invulnerable; only the void
+  destroys it), so the temporary copy that `/give` drops disappears as it should. `/pspace give-portal` also applies
+  its no-pickup-delay again.
+* **Status effects lost when travelling**: going through a portal to or from a personal dimension cleared the
+  client's status effects (e.g. infinite Night Vision), and the server refused to apply them again because it still
+  had them. Effects are now resent after the teleport.
+
 ## [0.2.0] - 2026-10-09
 
 ### ✨ New

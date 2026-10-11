@@ -31,7 +31,7 @@ public final class PersonalSpacePortalRegistry {
     public static final RegistryObject<PersonalSpacePortalBlock> PORTAL = BLOCKS.register("personal_space_portal",
             PersonalSpacePortalBlock::new);
     public static final RegistryObject<Item> PORTAL_ITEM = ITEMS.register("personal_space_portal",
-            () -> new PersonalSpacePortalItem(PORTAL.get(), new Item.Properties().rarity(Rarity.UNCOMMON)));
+            () -> new PersonalSpacePortalItem(PORTAL.get(), new Item.Properties().rarity(Rarity.UNCOMMON).fireResistant()));
     public static final RegistryObject<BlockEntityType<PersonalSpacePortalEntity>> PORTAL_ENTITY = BLOCK_ENTITIES
             .register("personal_space_portal", () -> BlockEntityType.Builder
                     .of(PersonalSpacePortalEntity::new, PORTAL.get()).build(null));

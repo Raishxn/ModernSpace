@@ -1,5 +1,7 @@
 package com.raishxn.modernspace.common;
 
+import net.minecraft.network.protocol.game.ClientboundUpdateMobEffectPacket;
+import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Holder;
 import net.minecraft.core.registries.Registries;
@@ -150,7 +152,15 @@ public final class PersonalSpaceWorlds {
     }
 
     public static void teleport(ServerPlayer player, ServerLevel level, double x, double y, double z, float yaw) {
+        boolean otherLevel = player.level() != level;
         player.teleportTo(level, x, y, z, yaw, 0.0F);
         player.setDeltaMovement(0, 0, 0);
+        // Unlike changeDimension, ServerPlayer.teleportTo does not resend effects after the respawn packet, so the
+        // client drops them (e.g. infinite night vision) while the server keeps them and refuses to reapply them.
+        if (otherLevel) {
+            for (MobEffectInstance effect : player.getActiveEffects()) {
+                player.connection.send(new ClientboundUpdateMobEffectPacket(player.getId(), effect));
+            }
+        }
     }
 }

@@ -5,7 +5,6 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.InteractionResult;
-import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.ItemStack;
@@ -68,21 +67,14 @@ public final class PersonalSpacePortalItem extends BlockItem {
         return Integer.MAX_VALUE;
     }
 
-    @Override
-    public boolean hasCustomEntity(ItemStack stack) {
-        return true;
-    }
-
-    /** Immune to fire, lava, cactus and explosions; only the void destroys it. */
-    @Override
-    public Entity createEntity(Level level, Entity location, ItemStack stack) {
-        // A subclass: Forge only swaps plain ItemEntity instances, so returning one would recurse forever.
-        ItemEntity entity = new ItemEntity(level, location.getX(), location.getY(), location.getZ(), stack) {};
-        entity.setDeltaMovement(location.getDeltaMovement());
-        entity.setYRot(location.getYRot());
-        entity.setXRot(location.getXRot());
-        entity.setPickUpDelay(10);
-        entity.setInvulnerable(true);
-        return entity;
+    /**
+     * Protects a dropped portal from everything but the void. It stays a plain {@link ItemEntity}: a custom entity
+     * would replace the fake copy that {@code /give} and quest rewards drop before it is marked fake, so the copy
+     * would become a real second item.
+     */
+    static void onEntityJoin(net.minecraftforge.event.entity.EntityJoinLevelEvent event) {
+        if (event.getEntity() instanceof ItemEntity item && item.getItem().getItem() instanceof PersonalSpacePortalItem) {
+            item.setInvulnerable(true);
+        }
     }
 }
