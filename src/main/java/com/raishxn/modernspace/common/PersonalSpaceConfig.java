@@ -51,6 +51,8 @@ public final class PersonalSpaceConfig {
         public Boolean useBlockEventChecks;
         /** GregTech CEu solar panels, solar covers and solar boilers produce in personal spaces. */
         public Boolean gtceuSolarPanels;
+        /** Plot and campus presets (Quartz Works, Pink Dream, Woodland and the street grids) can be chosen. */
+        public Boolean allowPlotPresets;
         public Integer dropdownMaxVisibleRows;
         public Integer dropdownMaxVisibleColumns;
 
@@ -71,6 +73,7 @@ public final class PersonalSpaceConfig {
             values.debugLogging = false;
             values.useBlockEventChecks = true;
             values.gtceuSolarPanels = true;
+            values.allowPlotPresets = true;
             values.dropdownMaxVisibleRows = 6;
             values.dropdownMaxVisibleColumns = 12;
             return values;
@@ -145,6 +148,7 @@ public final class PersonalSpaceConfig {
             if (debugLogging == null) debugLogging = defaults.debugLogging;
             if (useBlockEventChecks == null) useBlockEventChecks = defaults.useBlockEventChecks;
             if (gtceuSolarPanels == null) gtceuSolarPanels = defaults.gtceuSolarPanels;
+            if (allowPlotPresets == null) allowPlotPresets = defaults.allowPlotPresets;
             if (dropdownMaxVisibleRows == null) dropdownMaxVisibleRows = defaults.dropdownMaxVisibleRows;
             if (dropdownMaxVisibleColumns == null) dropdownMaxVisibleColumns = defaults.dropdownMaxVisibleColumns;
             dropdownMaxVisibleRows = Math.max(1, Math.min(20, dropdownMaxVisibleRows));
@@ -204,6 +208,10 @@ public final class PersonalSpaceConfig {
 
     public static boolean gtceuSolarPanels() {
         return values.gtceuSolarPanels;
+    }
+
+    public static boolean allowPlotPresets() {
+        return values.allowPlotPresets;
     }
 
     public static boolean useBlockEventChecks() {

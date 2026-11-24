@@ -8,3 +8,6 @@ __pycache__/
 *.pyc
 run-gametest/
 run-migtest/
+
+# GTO/GTCEu/LDLib jars used only to compile the Java 21 bridge (third-party, not redistributed)
+libs/

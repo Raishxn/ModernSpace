@@ -31,6 +31,13 @@ public final class ModernSpace {
     public ModernSpace(FMLJavaModLoadingContext context) {
         var bus = context.getModEventBus();
         PersonalSpaceChunkGenerators.register(bus);
+        // Plot and campus presets, devices and teleport (ported from GTO Campus / GTL-Enhancedcore, LGPL-3.0).
+        com.raishxn.modernspace.campus.plot.PlotWorldRegistration.register(bus);
+        com.raishxn.modernspace.campus.device.CampusDeviceBlocks.register(bus);
+        bus.addListener((net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent event) -> event.enqueueWork(() -> {
+            com.raishxn.modernspace.campus.info.PlotWorldInfoNetwork.register();
+            com.raishxn.modernspace.campus.device.CampusTeleportNetwork.register();
+        }));
         PersonalSpacePortalRegistry.register(bus);
         ModernSpaceNetwork.register();
         PersonalSpaceConfig.load();

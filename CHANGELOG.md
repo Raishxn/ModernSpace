@@ -4,6 +4,18 @@ All notable changes to this project will be documented in this file.
 
 ---
 
+## [0.3.2] - Unreleased
+
+### ✨ New
+* **Plot and campus presets**: a personal dimension can now be created from a preset where each multiblock gets its
+  own space (plot) in a grid, or from a whole campus layout. The preset is chosen on the dimension edit screen
+  (or pasted as a share code), is locked once the dimension exists and can be disabled with `allowPlotPresets`.
+* **Central teleporter**, portable central teleporter, virtual markers and the plot world controller to move
+  between plots of a campus.
+* GregTech is optional: with the GTO build of GTCEu (Java 21) the machine catalog fills the plots; without it the
+  presets still load but have no machine plots. Not yet playtested with GregTech in the game.
+* English, Portuguese (Brazil) and Simplified Chinese strings for all of the above.
+
 ## [0.3.1] - 2026-10-11
 
 ### ✨ New

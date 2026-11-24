@@ -205,6 +205,13 @@ public final class PersonalSpacePortalEntity extends BlockEntity {
             player.sendSystemMessage(Component.translatable("chat.personalWorld.badBlocks"));
             return;
         }
+        if (unsafe.isPlotWorld()) {
+            var plot = unsafe.plotSettings();
+            if (!PersonalSpaceConfig.allowPlotPresets() || plot == null || !plot.isAvailableForCreation()) {
+                player.sendSystemMessage(Component.translatable("chat.personalWorld.badPlotPreset"));
+                return;
+            }
+        }
         if (!PersonalSpaceSettings.canUseBiome(unsafe.getBiomeId(), PersonalSpaceConfig.allowedBiomes())) {
             unsafe.setBiomeId(PersonalSpaceSettings.DEFAULT_BIOME);
         }
@@ -218,6 +225,8 @@ public final class PersonalSpacePortalEntity extends BlockEntity {
         if (targetId > 0) {
             PersonalSpaceSettings real = PersonalSpaceDirectory.get(server).settings(targetId);
             if (real == null) return;
+            // The plot/campus generator is fixed when the dimension is created; keep its recipe.
+            sanitized.setPlotPreset(real.getPlotPreset());
             changed = real.copyFrom(sanitized, true, real.getAllowGenerationChanges());
             real.setAllowGenerationChanges(false);
             PersonalSpaceWorlds.settingsChanged(server, targetId);
@@ -228,6 +237,15 @@ public final class PersonalSpacePortalEntity extends BlockEntity {
             active = true;
             targetDimension = PersonalSpaceWorlds.key(id).location();
             targetPos = new BlockPos(targetPos.getX(), sanitized.getGroundLevel() + 1, targetPos.getZ());
+            if (sanitized.isPlotWorld()) {
+                // Campus buildings may stand at the arrival column: arrive on top of whatever was generated there.
+                ServerLevel plotLevel = PersonalSpaceWorlds.load(server, id);
+                if (plotLevel != null) {
+                    int top = plotLevel.getHeight(net.minecraft.world.level.levelgen.Heightmap.Types.MOTION_BLOCKING,
+                            targetPos.getX(), targetPos.getZ());
+                    if (top > plotLevel.getMinBuildHeight()) targetPos = new BlockPos(targetPos.getX(), top, targetPos.getZ());
+                }
+            }
             changed();
             created = true;
             linkOtherPortal(true, player);

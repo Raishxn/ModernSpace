@@ -134,6 +134,13 @@ public final class PersonalSpaceSettings {
     private CenterDirection centerDirection = CenterDirection.SE;
     private String centerBlock = "minecraft:red_wool";
 
+    /**
+     * EN: plot/campus recipe (PlotPresetShare text); empty for a layered world. Generation-only.
+     * PT: receita de lote/campus (texto do PlotPresetShare); vazio num mundo de camadas. Só geração.
+     * ZH: 地块/园区配方（PlotPresetShare 文本）；分层世界为空。仅影响生成。
+     */
+    private String plotPreset = "";
+
     private boolean needsSaving = true;
 
     public PersonalSpaceSettings() {}
@@ -175,6 +182,7 @@ public final class PersonalSpaceSettings {
             setCenterEnabled(source.centerEnabled);
             setCenterDirection(source.centerDirection);
             setCenterBlock(source.centerBlock);
+            setPlotPreset(source.plotPreset);
             needsSaving = true;
         }
         boolean modified = needsSaving;
@@ -377,8 +385,46 @@ public final class PersonalSpaceSettings {
         return layersToString(layers);
     }
 
+    public String getPlotPreset() {
+        return plotPreset;
+    }
+
+    public void setPlotPreset(String value) {
+        value = value == null ? "" : value.trim();
+        if (value.length() > PLOT_PRESET_MAX_LENGTH) value = "";
+        if (!plotPreset.equals(value)) {
+            plotPreset = value;
+            markDirty();
+        }
+    }
+
+    public boolean isPlotWorld() {
+        return !plotPreset.isEmpty();
+    }
+
+    /** Decoded plot recipe, or null for a layered world or an unreadable recipe. */
+    public com.raishxn.modernspace.campus.plot.PlotSettings plotSettings() {
+        if (plotPreset.isEmpty()) return null;
+        if (plotPreset.equals(decodedPlotKey)) return decodedPlot;
+        com.raishxn.modernspace.campus.plot.PlotSettings decoded;
+        try {
+            decoded = com.raishxn.modernspace.campus.plot.PlotPresetShare.decodeStored(plotPreset);
+        } catch (RuntimeException invalid) {
+            decoded = null;
+        }
+        decodedPlot = decoded;
+        decodedPlotKey = plotPreset;
+        return decoded;
+    }
+
+    public static final int PLOT_PRESET_MAX_LENGTH = 8192;
+    private transient String decodedPlotKey;
+    private transient com.raishxn.modernspace.campus.plot.PlotSettings decodedPlot;
+
     /** Ground level of the original provider: 128 for a void world, otherwise the stack height capped at 255. */
     public int getGroundLevel() {
+        var plot = plotSettings();
+        if (plot != null) return plot.surfaceY() + 1;
         if (layers.isEmpty()) return 128;
         int y = 0;
         for (Layer layer : layers) y += layer.count();
@@ -819,6 +865,7 @@ public final class PersonalSpaceSettings {
         center.putInt("direction", centerDirection.ordinal());
         center.putString("block", centerBlock);
         tag.put("center", center);
+        if (!plotPreset.isEmpty()) tag.putString("plotPreset", plotPreset);
 
         if (timeDataPersisted) {
             CompoundTag time = new CompoundTag();
@@ -877,6 +924,7 @@ public final class PersonalSpaceSettings {
         settings.setCenterEnabled(center.getBoolean("enabled"));
         settings.setCenterDirection(CenterDirection.fromOrdinal(center.getInt("direction")));
         settings.setCenterBlock(center.getString("block"));
+        settings.setPlotPreset(tag.getString("plotPreset"));
 
         if (tag.contains("time", Tag.TAG_COMPOUND)) {
             CompoundTag time = tag.getCompound("time");
@@ -937,6 +985,7 @@ public final class PersonalSpaceSettings {
         buf.writeBoolean(centerEnabled);
         buf.writeVarInt(centerDirection.ordinal());
         buf.writeUtf(centerBlock);
+        buf.writeUtf(plotPreset, PLOT_PRESET_MAX_LENGTH);
     }
 
     public static PersonalSpaceSettings read(FriendlyByteBuf buf) {
@@ -970,6 +1019,7 @@ public final class PersonalSpaceSettings {
         settings.setCenterEnabled(buf.readBoolean());
         settings.setCenterDirection(CenterDirection.fromOrdinal(buf.readVarInt()));
         settings.setCenterBlock(buf.readUtf(256));
+        settings.setPlotPreset(buf.readUtf(PLOT_PRESET_MAX_LENGTH));
         return settings;
     }
 
@@ -990,7 +1040,7 @@ public final class PersonalSpaceSettings {
                 gapPreset == that.gapPreset && gapBlockA.equals(that.gapBlockA) && gapBlockB.equals(that.gapBlockB) &&
                 gapBlockC.equals(that.gapBlockC) && applyToAllSurfaceLayers == that.applyToAllSurfaceLayers &&
                 centerEnabled == that.centerEnabled && centerDirection == that.centerDirection &&
-                centerBlock.equals(that.centerBlock);
+                centerBlock.equals(that.centerBlock) && plotPreset.equals(that.plotPreset);
     }
 
     @Override
@@ -998,12 +1048,12 @@ public final class PersonalSpaceSettings {
         return Objects.hash(skyColor, starBrightness, weatherEnabled, daylightCycle, cloudsEnabled, skyType,
                 generatingVegetation, generatingTrees, allowGenerationChanges, biomeId, layers, boundaryBlockA,
                 boundaryBlockB, boundaryChunkIntervalX, boundaryChunkIntervalZ, gapWidth, gapPreset, gapBlockA,
-                gapBlockB, gapBlockC, applyToAllSurfaceLayers, centerEnabled, centerDirection, centerBlock);
+                gapBlockB, gapBlockC, applyToAllSurfaceLayers, centerEnabled, centerDirection, centerBlock, plotPreset);
     }
 
     /** Hash of the generation-related settings used by the editor's preview panel. */
     public int generationHash() {
         return Objects.hash(boundaryBlockA, boundaryBlockB, boundaryChunkIntervalX, boundaryChunkIntervalZ, gapWidth,
-                gapPreset, gapBlockA, gapBlockB, gapBlockC, centerEnabled, centerDirection, centerBlock, layers);
+                gapPreset, gapBlockA, gapBlockB, gapBlockC, centerEnabled, centerDirection, centerBlock, layers, plotPreset);
     }
 }

@@ -27,6 +27,9 @@ public final class PersonalSpaceWorlds {
 
     public static final ResourceKey<DimensionType> DIMENSION_TYPE = ResourceKey.create(Registries.DIMENSION_TYPE,
             ModernSpace.id("personal_space"));
+    /** Plot and campus worlds: overworld height (-64..319), as the campus recipes are authored for it. */
+    public static final ResourceKey<DimensionType> PLOT_DIMENSION_TYPE = ResourceKey.create(Registries.DIMENSION_TYPE,
+            ModernSpace.id("personal_space_plot"));
     private static final String PATH_PREFIX = "personal_space/pdim_";
 
     private PersonalSpaceWorlds() {}
@@ -123,9 +126,15 @@ public final class PersonalSpaceWorlds {
             biome = biomes.getHolderOrThrow(ResourceKey.create(Registries.BIOME,
                     new ResourceLocation(PersonalSpaceSettings.DEFAULT_BIOME)));
         }
+        var plot = settings.plotSettings();
+        var types = server.registryAccess().registryOrThrow(Registries.DIMENSION_TYPE);
+        if (plot != null) {
+            Holder<DimensionType> type = types.getHolder(PLOT_DIMENSION_TYPE).map(holder -> (Holder<DimensionType>) holder)
+                    .orElseGet(() -> server.overworld().dimensionTypeRegistration());
+            return new LevelStem(type, new com.raishxn.modernspace.campus.plot.PlotChunkGenerator(biome, plot));
+        }
         var generator = new PersonalSpaceChunkGenerator(new FixedBiomeSource(biome), id, settings);
-        Holder<DimensionType> type = server.registryAccess().registryOrThrow(Registries.DIMENSION_TYPE)
-                .getHolder(DIMENSION_TYPE).map(holder -> (Holder<DimensionType>) holder)
+        Holder<DimensionType> type = types.getHolder(DIMENSION_TYPE).map(holder -> (Holder<DimensionType>) holder)
                 .orElseGet(() -> server.overworld().dimensionTypeRegistration());
         return new LevelStem(type, generator);
     }

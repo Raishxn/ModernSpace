@@ -66,6 +66,7 @@ public class PersonalSpaceEditScreen extends Screen {
     private int currentPage = 0;
     private Widget page1Container, page2Container;
     private WButton moreSettingsButton, presetScrollLeft, presetScrollRight, backToMainButton;
+    private WButton plotPresetButton, plotPresetClear;
     private int presetScrollOffset = 0;
     private WPreviewPanel previewPanel;
     private Widget presetEditor;
@@ -425,6 +426,22 @@ public class PersonalSpaceEditScreen extends Screen {
         updatePresetButtonPositions();
         ySize += 20;
 
+        // Plot and campus presets (street grids, Woodland, Quartz Works, Pink Dream), chosen only at creation.
+        plotPresetButton = new WButton(new Rectangle(0, ySize, 148, 18), plotPresetLabel(), true, WButton.DEFAULT_COLOR,
+                null, this::openPlotEditor);
+        plotPresetButton.tooltip = tr(desiredConfig.getAllowGenerationChanges()
+                ? "gui.personalWorld.plotPreset.tooltip" : "gui.personalWorld.plotPreset.locked");
+        rootWidget.addChild(plotPresetButton);
+        plotPresetClear = new WButton(new Rectangle(150, ySize, 18, 18), "", false, 0, Icons.SMALL_CROSS, () -> {
+            desiredConfig.setPlotPreset("");
+            plotPresetButton.text = plotPresetLabel();
+            plotPresetClear.visible = false;
+        });
+        plotPresetClear.tooltip = tr("gui.personalWorld.plotPreset.clear");
+        plotPresetClear.visible = desiredConfig.isPlotWorld() && desiredConfig.getAllowGenerationChanges();
+        rootWidget.addChild(plotPresetClear);
+        ySize += 20;
+
         presetEditor = new Widget();
         presetEditor.position = new Rectangle(192, 0, 1, 1);
         rootWidget.addChild(presetEditor);
@@ -582,6 +599,33 @@ public class PersonalSpaceEditScreen extends Screen {
         ySize = 244 - 16;
         guiLeft = (width - xSize) / 2;
         guiTop = (height - ySize) / 2;
+    }
+
+    private String plotPresetLabel() {
+        var plot = desiredConfig.plotSettings();
+        if (plot == null) return tr("gui.personalWorld.plotPreset.none");
+        if (plot.isCampus()) {
+            String name = plot.roadStyle() == com.raishxn.modernspace.campus.plot.PlotSettings.RoadStyle.CAMPUS_FILE
+                    ? tr(com.raishxn.modernspace.campus.plot.CampusPresetRegistry.get(plot.campusPresetId()).nameKey())
+                    : tr("modernspace.create_world_plot.campus_preset");
+            return tr("gui.personalWorld.plotPreset.campus", name);
+        }
+        return tr("gui.personalWorld.plotPreset.grid", plot.plotChunks(), plot.plotChunks());
+    }
+
+    private void openPlotEditor() {
+        if (minecraft == null) return;
+        var current = desiredConfig.plotSettings();
+        if (!desiredConfig.getAllowGenerationChanges()) {
+            // Existing world: show its recipe read-only.
+            if (current != null) com.raishxn.modernspace.client.campus.info.PlotWorldInfoScreen.open(current);
+            return;
+        }
+        minecraft.setScreen(new com.raishxn.modernspace.client.campus.CreateWorldPlotScreen(this,
+                current == null ? com.raishxn.modernspace.campus.plot.PlotSettings.defaults() : current,
+                Component.translatable("gui.personalWorld.plotPreset.title"),
+                Component.translatable("gui.personalWorld.plotPreset.use"),
+                chosen -> desiredConfig.setPlotPreset(com.raishxn.modernspace.campus.plot.PlotPresetShare.encode(chosen))));
     }
 
     private WButton stepButton(int x, Runnable action, String key) {
