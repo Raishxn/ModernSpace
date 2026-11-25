@@ -26,6 +26,9 @@ All notable changes to this project will be documented in this file.
 * **Machines that work together stand together**: a mod can list a multiblock and its modules in
   `modernspace_campus_groups.json` at the root of its jar; the modules get plots right next to their main machine
   (members ending in `*` match by prefix).
+* **Annex for oversized machines**: on a file preset (Quartz Works, Pink Dream) a multiblock no hall can hold, such as
+  a megastructure, is no longer skipped: it gets an open-air annex of its own size against the campus edge nearest to
+  the halls of its stage.
 
 ## [0.3.1] - 2026-10-11
 

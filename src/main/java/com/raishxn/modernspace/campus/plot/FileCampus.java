@@ -31,6 +31,9 @@ public final class FileCampus {
     private final Set<String> MATERIALS;
     private final Plan plan;
     private final List<PlannedCampus.Bounds> gardens;
+    private static final int ANNEX_MARGIN = 12;
+    private final List<PlannedCampus.Bounds> annexes = new ArrayList<>();
+    private final Map<String,Integer> annexOffset = new HashMap<>();
     public static FileCampus of(String id) {
         return CACHE.computeIfAbsent(id, key -> new FileCampus(CampusPresetRegistry.get(key)));
     }
@@ -103,7 +106,46 @@ public final class FileCampus {
     public int planningTier(String id) { return plan.tiers.get(id); }
     public int maxHeight() { return scene==null?plan.height:Math.max(plan.height,scene.maxHeight()); }
     public boolean fitsHeight(PlotSettings settings) { return settings.surfaceY()+maxHeight()<=319; }
-    public boolean hasTerrain(int x, int z) { return BOUNDS.contains(x,z); }
+    public boolean hasTerrain(int x, int z) {
+        if (BOUNDS.contains(x,z)) return true;
+        for (var annex : annexes) if (annex.contains(x,z)) return true;
+        return false;
+    }
+
+    // EN: A machine no authored hall can hold (a megastructure larger than the preset's halls, today or later) gets
+    // EN: an open-air annex of its own size, against the campus edge nearest to the halls of its stage; annexes of the
+    // EN: same side line up outwards.
+    // PT: Máquina que não cabe em nenhum hall do preset (megaestrutura maior que os halls, hoje ou no futuro) ganha um
+    // PT: anexo a céu aberto do tamanho dela, encostado na borda do campus mais perto dos halls do mesmo estágio; anexos
+    // PT: do mesmo lado se enfileiram para fora.
+    // ZH: 任何预设厂房都放不下的机器（现在或将来比厂房更大的巨构）会获得一个与其尺寸相符的露天附属场地，
+    // ZH: 紧贴离同阶段厂房最近的园区边缘；同一侧的附属场地向外依次排列。
+    private FactoryArchitecture.Hall annex(JsonObject machine, List<FactoryArchitecture.Hall> halls) {
+        var size=machine.getAsJsonArray("size");
+        int w=size.get(0).getAsInt(), h=size.get(1).getAsInt(), d=size.get(2).getAsInt();
+        int width=Math.max(32,w+2*HallPacker.GAP+2*ANNEX_MARGIN), depth=Math.max(32,d+2*HallPacker.GAP+2*ANNEX_MARGIN);
+        String stage=machine.get("stage").getAsString(), id=machine.get("id").getAsString();
+        double cx=(BOUNDS.minX()+BOUNDS.maxX())/2.0, cz=(BOUNDS.minZ()+BOUNDS.maxZ())/2.0; int n=0;
+        for(var hall:halls) if(hall.stage().startsWith(stage)) {
+            if(n==0){cx=0;cz=0;}
+            cx+=(hall.x()+hall.maxX())/2.0; cz+=(hall.z()+hall.maxZ())/2.0; n++;
+        }
+        if(n>0){cx/=n;cz/=n;}
+        double east=BOUNDS.maxX()-cx, west=cx-BOUNDS.minX(), south=BOUNDS.maxZ()-cz, north=cz-BOUNDS.minZ();
+        double min=Math.min(Math.min(east,west),Math.min(south,north));
+        String side=min==east?"east":min==west?"west":min==south?"south":"north";
+        int out=annexOffset.getOrDefault(side,0); annexOffset.put(side,out+(side.equals("east")||side.equals("west")?width:depth));
+        int x,z;
+        switch(side) {
+            case "east" -> { x=BOUNDS.maxX()+1+out; z=(int)Math.round(cz)-depth/2; }
+            case "west" -> { x=BOUNDS.minX()-out-width; z=(int)Math.round(cz)-depth/2; }
+            case "south" -> { z=BOUNDS.maxZ()+1+out; x=(int)Math.round(cx)-width/2; }
+            default -> { z=BOUNDS.minZ()-out-depth; x=(int)Math.round(cx)-width/2; }
+        }
+        String department=machine.has("theme")?machine.get("theme").getAsString():"";
+        return new FactoryArchitecture.Hall("annex_"+id.replace(':','_'),department,stage,x,z,width,depth,
+                Math.max(20,h+4),0,true,"north");
+    }
     private long key(int x,int z) { return (long)x << 32 ^ z & 0xffffffffL; }
     private List<FactoryArchitecture.Hall> nearby(int x,int z) {
         return plan.tiles.getOrDefault(key(Math.floorDiv(x,64),Math.floorDiv(z,64)),List.of());
@@ -341,7 +383,19 @@ public final class FileCampus {
         List<PlannedCampus.Plot> plots=new ArrayList<>();
         List<ControllerMarker> markers=new ArrayList<>();
         // GTO port: plots are packed at runtime into the authored halls (HallPacker) instead of authored GTL positions.
-        for(var plot:HallPacker.pack(definition.id(),packHalls,machines.values(),hallProduction)) {
+        List<JsonObject> unplaced=new ArrayList<>();
+        List<PlannedCampus.Plot> packed=new ArrayList<>(HallPacker.pack(definition.id(),packHalls,machines.values(),hallProduction,unplaced));
+        for(var machine:unplaced) {
+            var annex=annex(machine,halls);
+            var floor=new PlannedCampus.Bounds(annex.x()+ANNEX_MARGIN,annex.z()+ANNEX_MARGIN,annex.maxX()-ANNEX_MARGIN,annex.maxZ()-ANNEX_MARGIN);
+            hallProduction.put(annex.id(),floor);
+            halls.add(annex); annexes.add(annex.bounds());
+            for(int tx=Math.floorDiv(annex.x()-10,64);tx<=Math.floorDiv(annex.maxX()+10,64);tx++)
+                for(int tz=Math.floorDiv(annex.z()-10,64);tz<=Math.floorDiv(annex.maxZ()+10,64);tz++)
+                    tiles.computeIfAbsent(key(tx,tz),unused->new ArrayList<>()).add(annex);
+            packed.addAll(HallPacker.pack(definition.id(),List.of(annex),List.of(machine),hallProduction));
+        }
+        for(var plot:packed) {
             plots.add(plot);
             markers.add(new ControllerMarker(plot,"","north","up"));
             height=Math.max(height,plot.height()+2);

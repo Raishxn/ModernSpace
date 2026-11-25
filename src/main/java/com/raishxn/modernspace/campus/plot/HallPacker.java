@@ -18,7 +18,7 @@ import java.util.Set;
  * ZH: 优先同部门同阶段，其次同阶段、同部门、任意厂房；放不下的机器记录日志并跳过。
  */
 final class HallPacker {
-    private static final int GAP = 3; // free blocks kept around each machine footprint
+    static final int GAP = 3; // free blocks kept around each machine footprint
 
     private HallPacker() {}
 
@@ -31,6 +31,14 @@ final class HallPacker {
 
     static List<PlannedCampus.Plot> pack(String preset, List<FactoryArchitecture.Hall> halls, Collection<JsonObject> catalog,
                                          Map<String, PlannedCampus.Bounds> production) {
+        return pack(preset, halls, catalog, production, null);
+    }
+
+    /** As {@link #pack}, adding to {@code unplaced} the catalog entries no hall fits (one per missing copy). */
+    static List<PlannedCampus.Plot> pack(String preset, List<FactoryArchitecture.Hall> halls, Collection<JsonObject> catalog,
+                                         Map<String, PlannedCampus.Bounds> production, List<JsonObject> unplaced) {
+        Map<String, JsonObject> byId = new java.util.HashMap<>();
+        for (JsonObject json : catalog) byId.put(json.get("id").getAsString(), json);
         List<Machine> machines = new ArrayList<>();
         for (JsonObject json : catalog) {
             var size = json.getAsJsonArray("size"); var anchor = json.getAsJsonArray("groundOffset");
@@ -57,7 +65,9 @@ final class HallPacker {
                     if (placed != null) break;
                 }
             }
-            if (placed == null) {
+            if (placed == null && unplaced != null) {
+                unplaced.add(byId.get(machine.id));
+            } else if (placed == null) {
                 skipped++;
                 ModernSpace.LOGGER.warn("[campus:{}] No hall fits {} ({}x{}x{}); skipped", preset, machine.id, machine.w, machine.h, machine.d);
             } else plots.add(placed);
