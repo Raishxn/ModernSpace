@@ -241,6 +241,12 @@ public final class PersonalSpacePortalEntity extends BlockEntity {
                 // Campus buildings may stand at the arrival column: arrive on top of whatever was generated there.
                 ServerLevel plotLevel = PersonalSpaceWorlds.load(server, id);
                 if (plotLevel != null) {
+                    // EN: Generate the arrival chunk fully first: before that the heightmap is the generator's estimate,
+                    // EN: which counts planned buildings, so the portal was placed floating in the sky.
+                    // PT: Gera o chunk de chegada por completo antes: até lá o heightmap é a estimativa do gerador, que
+                    // PT: conta prédios planejados, e o portal ficava flutuando no céu.
+                    // ZH: 先完整生成到达区块：在此之前高度图只是生成器的估计值，会把规划中的建筑算进去，导致传送门悬空。
+                    plotLevel.getChunk(targetPos.getX() >> 4, targetPos.getZ() >> 4);
                     int top = plotLevel.getHeight(net.minecraft.world.level.levelgen.Heightmap.Types.MOTION_BLOCKING,
                             targetPos.getX(), targetPos.getZ());
                     if (top > plotLevel.getMinBuildHeight()) targetPos = new BlockPos(targetPos.getX(), top, targetPos.getZ());
