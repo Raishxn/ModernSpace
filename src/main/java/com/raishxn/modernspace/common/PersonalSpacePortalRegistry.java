@@ -5,6 +5,8 @@ import net.minecraft.resources.ResourceKey;
 import net.minecraft.tags.BlockTags;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.CreativeModeTab;
+
+import com.raishxn.modernspace.campus.device.CampusDeviceBlocks;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Rarity;
@@ -39,7 +41,16 @@ public final class PersonalSpacePortalRegistry {
     public static final RegistryObject<CreativeModeTab> TAB = TABS.register("main", () -> CreativeModeTab.builder()
             .title(Component.translatable("itemGroup.modernspace"))
             .icon(() -> new ItemStack(PORTAL_ITEM.get()))
-            .displayItems((parameters, output) -> output.accept(PORTAL_ITEM.get()))
+            // EN: One tab for every item; the campus devices had a second tab with the same id and name.
+            // PT: Uma aba para todos os itens; os dispositivos do campus tinham uma segunda aba com o mesmo id e nome.
+            // ZH: 所有物品共用一个标签页；园区设备原先另有一个同 id、同名的标签页。
+            .displayItems((parameters, output) -> {
+                output.accept(PORTAL_ITEM.get());
+                output.accept(CampusDeviceBlocks.PLOT_WORLD_CONTROLLER.get());
+                output.accept(CampusDeviceBlocks.PORTABLE_CENTRAL_TELEPORTER.get());
+                output.accept(CampusDeviceBlocks.CENTRAL_TELEPORTER_ITEM.get());
+                output.accept(CampusDeviceBlocks.VIRTUAL_MARKER_ITEM.get());
+            })
             .build());
 
     private PersonalSpacePortalRegistry() {}

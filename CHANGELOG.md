@@ -16,6 +16,11 @@ All notable changes to this project will be documented in this file.
   presets still load but have no machine plots. Not yet playtested with GregTech in the game.
 * English, Portuguese (Brazil) and Simplified Chinese strings for all of the above.
 
+### 🐛 Fixed
+* **One creative tab**: the campus devices registered a second "Personal Space" tab with the same id, so the
+  central teleporter and the other campus items went missing and the portal tooltip listed the tab twice. All
+  ModernSpace items are now in a single tab.
+
 ## [0.3.1] - 2026-10-11
 
 ### ✨ New

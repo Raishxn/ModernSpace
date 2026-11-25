@@ -3,12 +3,8 @@ package com.raishxn.modernspace.campus.device;
 import com.raishxn.modernspace.ModernSpace;
 import com.raishxn.modernspace.campus.item.PlotWorldControllerItem;
 import com.raishxn.modernspace.campus.item.PortableCentralTeleporterItem;
-import net.minecraft.core.registries.Registries;
 import net.minecraft.world.item.BlockItem;
-import net.minecraft.world.item.CreativeModeTab;
 import net.minecraft.world.item.Item;
-import net.minecraft.world.item.ItemStack;
-import net.minecraft.network.chat.Component;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.SoundType;
 import net.minecraft.world.level.block.entity.BlockEntityType;
@@ -24,7 +20,6 @@ public final class CampusDeviceBlocks {
     private static final DeferredRegister<Block> BLOCKS = DeferredRegister.create(ForgeRegistries.BLOCKS, ModernSpace.MOD_ID);
     private static final DeferredRegister<Item> ITEMS = DeferredRegister.create(ForgeRegistries.ITEMS, ModernSpace.MOD_ID);
     private static final DeferredRegister<BlockEntityType<?>> BLOCK_ENTITIES = DeferredRegister.create(ForgeRegistries.BLOCK_ENTITY_TYPES, ModernSpace.MOD_ID);
-    private static final DeferredRegister<CreativeModeTab> TABS = DeferredRegister.create(Registries.CREATIVE_MODE_TAB, ModernSpace.MOD_ID);
 
     public static final RegistryObject<VirtualMarkerBlock> VIRTUAL_MARKER = BLOCKS.register("virtual_marker",
             () -> new VirtualMarkerBlock(BlockBehaviour.Properties.of().mapColor(MapColor.COLOR_LIGHT_BLUE).strength(0.0F)
@@ -46,16 +41,9 @@ public final class CampusDeviceBlocks {
     @SuppressWarnings("DataFlowIssue")
     public static final RegistryObject<BlockEntityType<CentralTeleporterBlockEntity>> CENTRAL_TELEPORTER_BLOCK_ENTITY = BLOCK_ENTITIES.register("central_teleporter",
             () -> BlockEntityType.Builder.<CentralTeleporterBlockEntity>of((p, s) -> new CentralTeleporterBlockEntity(CampusDeviceBlocks.CENTRAL_TELEPORTER_BLOCK_ENTITY.get(), p, s), CENTRAL_TELEPORTER.get()).build(null));
-    public static final RegistryObject<CreativeModeTab> TAB = TABS.register("main", () -> CreativeModeTab.builder()
-            .title(Component.translatable("itemGroup.modernspace")).icon(() -> new ItemStack(CENTRAL_TELEPORTER_ITEM.get()))
-            .displayItems((params, out) -> {
-                out.accept(PLOT_WORLD_CONTROLLER.get()); out.accept(PORTABLE_CENTRAL_TELEPORTER.get());
-                out.accept(CENTRAL_TELEPORTER_ITEM.get()); out.accept(VIRTUAL_MARKER_ITEM.get());
-            }).build());
-
     private CampusDeviceBlocks() {}
 
     public static void register(IEventBus bus) {
-        BLOCKS.register(bus); ITEMS.register(bus); BLOCK_ENTITIES.register(bus); TABS.register(bus);
+        BLOCKS.register(bus); ITEMS.register(bus); BLOCK_ENTITIES.register(bus);
     }
 }
