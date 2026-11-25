@@ -11,6 +11,7 @@ import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
 /**
  * Campus machine catalog for upstream GTCEu (7.x), which has no multiblockpro structure API.
@@ -62,7 +63,8 @@ public final class GtceuMachineCatalog {
             List<Object> definitions = new ArrayList<>();
             for (Object definition : (Iterable<?>) machines) if (multiClass.isInstance(definition)) definitions.add(definition);
             definitions.sort((a, b) -> id(a).compareTo(id(b)));
-            for (Object definition : definitions) add(definition, reservations, shared, skippedJson);
+            Map<String, String> leaders = CampusGroups.leaders(definitions.stream().map(GtceuMachineCatalog::id).toList());
+            for (Object definition : definitions) add(definition, leaders, reservations, shared, skippedJson);
         } catch (Throwable error) {
             ModernSpace.LOGGER.error("[campus] GTCEu machine catalog failed", error);
         }
@@ -81,7 +83,7 @@ public final class GtceuMachineCatalog {
         return root;
     }
 
-    private static void add(Object definition, JsonArray reservations, JsonArray shared, JsonArray skippedJson) {
+    private static void add(Object definition, Map<String, String> leaders, JsonArray reservations, JsonArray shared, JsonArray skippedJson) {
         String id = id(definition);
         try {
             int[] geometry = geometry(definition);
@@ -91,7 +93,8 @@ public final class GtceuMachineCatalog {
             String text = keywords(definition, id);
             int tier = CampusHeuristics.tier((int) call(definition, "getTier"), text, w * h * d);
             String stage = tier <= 3 ? "early" : tier <= 8 ? "mid" : "late";
-            boolean isShared = w <= SHARED_MAX[0] && h <= SHARED_MAX[1] && d <= SHARED_MAX[2];
+            String leader = leaders.get(id);
+            boolean isShared = leader == null && w <= SHARED_MAX[0] && h <= SHARED_MAX[1] && d <= SHARED_MAX[2];
             if (isShared) { shared.add(id); return; }
             JsonObject entry = new JsonObject();
             entry.addProperty("id", id);
@@ -107,6 +110,7 @@ public final class GtceuMachineCatalog {
             entry.addProperty("patternResource", "runtime:" + id);
             entry.addProperty("allocation", "dedicated");
             entry.addProperty("displayNameKey", (String) call(definition, "getDescriptionId"));
+            if (leader != null) entry.addProperty("groupLeader", leader);
             reservations.add(entry);
         } catch (Throwable error) {
             ModernSpace.LOGGER.warn("[campus] Preview size failed for {}: {}", id, error.toString());

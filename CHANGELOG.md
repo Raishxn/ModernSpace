@@ -23,6 +23,9 @@ All notable changes to this project will be documented in this file.
 * **Full-size machine plots**: a plot is now sized for the largest form of its multiblock, from every preview shape
   and from the pattern with each repeatable layer at its maximum, so modular machines (all modules or upgrades) and
   repeatable ones (such as the ME Storage at full length) fit in their plot.
+* **Machines that work together stand together**: a mod can list a multiblock and its modules in
+  `modernspace_campus_groups.json` at the root of its jar; the modules get plots right next to their main machine
+  (members ending in `*` match by prefix).
 
 ## [0.3.1] - 2026-10-11
 

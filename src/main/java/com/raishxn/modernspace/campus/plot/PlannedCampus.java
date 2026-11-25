@@ -67,7 +67,11 @@ public final class PlannedCampus {
     }
     public record District(String stage, int minZ, int maxZ) {}
     private record Machine(String id, String stage, int tier, int width, int height, int depth,
-                           int cx, int cy, int cz, String pattern, int slotIndex, String theme, String displayNameKey) {}
+                           int cx, int cy, int cz, String pattern, int slotIndex, String theme, String displayNameKey,
+                           String leader) {
+        /** The machine its group is ordered and placed by: the leader for a module, itself otherwise. */
+        String anchor() { return leader.isEmpty() ? id : leader; }
+    }
     private record Placement(Machine machine, Bounds court) {}
     private record Candidate(Bounds court, Bounds free, int radius, int taxi, int slack, int waste) {}
     private record Connection(Street street, int length, int orientation, int edge, int target) {}
@@ -468,8 +472,17 @@ public final class PlannedCampus {
             if (copies < 1 || copies > 16 || tier < 0 || tier > 14) throw new IllegalArgumentException("Invalid campus allocation " + id);
             for (int slot = 0; slot < copies; slot++) result.add(new Machine(id, stage, tier, w, h, d, cx, cy, cz,
                     json.get("patternResource").getAsString(), slot, json.get("theme").getAsString(),
-                    json.has("displayNameKey") ? json.get("displayNameKey").getAsString() : ""));
+                    json.has("displayNameKey") ? json.get("displayNameKey").getAsString() : "",
+                    json.has("groupLeader") ? json.get("groupLeader").getAsString() : ""));
         }
+        // EN: A module takes its leader's tier, so the group is placed together, right after the leader.
+        // PT: O módulo assume o tier da máquina principal, para o grupo ser posto junto, logo depois dela.
+        // ZH: 模块采用主机的等级，使整组紧随主机一起放置。
+        Map<String, Integer> leaderTier = new HashMap<>();
+        for (Machine machine : result) if (machine.leader.isEmpty()) leaderTier.putIfAbsent(machine.id, machine.tier);
+        result.replaceAll(m -> m.leader.isEmpty() || !leaderTier.containsKey(m.leader) ? m
+                : new Machine(m.id, m.stage, leaderTier.get(m.leader), m.width, m.height, m.depth, m.cx, m.cy, m.cz,
+                        m.pattern, m.slotIndex, m.theme, m.displayNameKey, m.leader));
         return List.copyOf(result);
     }
     private static Bounds expand(Bounds bounds, int margin) {
@@ -617,14 +630,22 @@ public final class PlannedCampus {
         for (Street street : streets) publicGreen = subtract(publicGreen, streetBounds(street));
         for (Bounds reservation : core) publicGreen = subtract(publicGreen, reservation);
         List<Placement> placements = new ArrayList<>();
+        Map<String, Bounds> placedLeaders = new HashMap<>();
         for (Machine machine : machines) {
             int width = machine.width + 16, depth = machine.depth + 20; Candidate best = null;
+            Bounds leaderCourt = machine.leader.isEmpty() ? null : placedLeaders.get(machine.leader);
             for (Bounds space : free) {
                 if (width > space.width() || depth > space.depth()) continue;
                 for (int x : new int[] {space.minX, space.maxX - width + 1}) for (int z : new int[] {space.minZ, space.maxZ - depth + 1}) {
                     int cx = Math.abs(2 * x + width - 1), cz = Math.abs(2 * z + depth - 1);
                     if (Math.max(cx, cz) < 2 * minimumRadius(machine.tier)) continue;
-                    Candidate candidate = new Candidate(new Bounds(x, z, x + width - 1, z + depth - 1), space, Math.max(cx, cz), cx + cz,
+                    int radius = Math.max(cx, cz), taxi = cx + cz;
+                    if (leaderCourt != null) {
+                        // A module goes as close to its leader as the free space allows.
+                        radius = Math.abs(2 * x + width - 1 - (leaderCourt.minX + leaderCourt.maxX))
+                                + Math.abs(2 * z + depth - 1 - (leaderCourt.minZ + leaderCourt.maxZ));
+                    }
+                    Candidate candidate = new Candidate(new Bounds(x, z, x + width - 1, z + depth - 1), space, radius, taxi,
                             Math.min(space.width() - width, space.depth() - depth), space.width() * space.depth() - width * depth);
                     if (better(candidate, best)) best = candidate;
                 }
@@ -643,15 +664,21 @@ public final class PlannedCampus {
             if (connection.street != null) { addStreet(streets, connection.street); free = subtract(free, streetBounds(connection.street)); }
             serviceRing(streets, best.court, 4, 4, 4);
             placements.add(new Placement(machine, best.court));
+            if (machine.leader.isEmpty()) placedLeaders.putIfAbsent(machine.id, best.court);
         }
         List<Bounds> greenways = gardenRectangles(publicGreen), residuals = new ArrayList<>(greenways);
         residuals.addAll(gardenRectangles(free));
         return new Packing(List.copyOf(placements), List.copyOf(streets), List.copyOf(residuals), greenways, half, half);
     }
     private static Packing packing(List<Machine> machines, List<Workshop> pads) {
+        Map<String, Machine> byId = new HashMap<>();
+        for (Machine machine : machines) byId.putIfAbsent(machine.id, machine);
+        java.util.function.Function<Machine, Machine> anchor = m -> byId.getOrDefault(m.anchor(), m);
         List<Machine> ordered = machines.stream().sorted(Comparator.comparingInt(Machine::tier)
-                .thenComparing(Comparator.comparingInt((Machine machine) -> (machine.width + 16) * (machine.depth + 20)).reversed())
-                .thenComparing(Comparator.comparingInt((Machine machine) -> Math.max(machine.width, machine.depth)).reversed())
+                .thenComparing(Comparator.comparingInt((Machine m) -> (anchor.apply(m).width + 16) * (anchor.apply(m).depth + 20)).reversed())
+                .thenComparing(Comparator.comparingInt((Machine m) -> Math.max(anchor.apply(m).width, anchor.apply(m).depth)).reversed())
+                .thenComparing(Machine::anchor)
+                .thenComparing(m -> m.leader.isEmpty() ? 0 : 1)
                 .thenComparing(Machine::id).thenComparingInt(Machine::slotIndex)).toList();
         Packing packing = pack(ordered, pads, 1000);
         if (packing != null) return packing;
