@@ -14,11 +14,11 @@ import java.util.Locale;
 
 /**
  * Campus machine catalog for upstream GTCEu (7.x), which has no multiblockpro structure API.
- * EN: sizes come from each multiblock's first preview shape (the same shape EMI/JEI shows). The GregTech API is
+ * EN: sizes come from the union of each multiblock's preview shapes (the same shape EMI/JEI shows). The GregTech API is
  *     reached reflectively because this jar compiles against the GTO fork, whose signatures differ.
- * PT: os tamanhos vêm da primeira forma de prévia de cada multibloco (a mesma que o EMI/JEI mostra). A API do
+ * PT: os tamanhos vêm da união das formas de prévia de cada multibloco (as mesmas que o EMI/JEI mostra). A API do
  *     GregTech é usada por reflexão porque este jar compila contra o fork do GTO, que tem assinaturas diferentes.
- * ZH: 尺寸取自每个多方块的第一个预览结构（与 EMI/JEI 显示的相同）。由于本 jar 针对 GTO 分支编译、签名不同，
+ * ZH: 尺寸取自每个多方块所有预览结构的并集（与 EMI/JEI 显示的相同）。由于本 jar 针对 GTO 分支编译、签名不同，
  *     这里通过反射调用格雷 API。
  */
 public final class GtceuMachineCatalog {
@@ -73,7 +73,7 @@ public final class GtceuMachineCatalog {
         root.addProperty("schemaVersion", 3);
         root.addProperty("registryHash", "gtceu-preview");
         root.addProperty("coordinateSystem", "LEFT/UP/FRONT; controller facing north (front=NORTH, up=NORTH, unflipped)");
-        root.addProperty("generator", "modernspace GtceuMachineCatalog (first preview shape)");
+        root.addProperty("generator", "modernspace GtceuMachineCatalog (all preview shapes)");
         root.add("reservations", reservations);
         root.add("machines", reservations);
         root.add("effectiveSharedIds", shared);
@@ -123,21 +123,31 @@ public final class GtceuMachineCatalog {
     static int[] geometry(Object definition) throws ReflectiveOperationException {
         List<?> shapes = (List<?>) call(definition, "getMatchingShapes");
         if (shapes == null || shapes.isEmpty()) return null;
-        Object[][][] blocks = (Object[][][]) call(shapes.get(0), "getBlocks");
-        if (blocks.length == 0 || blocks[0].length == 0 || blocks[0][0].length == 0) return null;
         Block controller = (Block) call(definition, "getBlock");
-        int sx = blocks.length, sy = blocks[0].length, sz = blocks[0][0].length;
-        int cx = sx / 2, cy = 0, cz = 0;
-        Method stateOf = null;
-        outer:
-        for (int x = 0; x < sx; x++)
-            for (int y = 0; y < sy; y++)
-                for (int z = 0; z < sz; z++) {
-                    Object info = blocks[x][y][z];
-                    if (info == null) continue;
-                    if (stateOf == null) stateOf = info.getClass().getMethod("getBlockState");
-                    if (((BlockState) stateOf.invoke(info)).is(controller)) { cx = x; cy = y; cz = z; break outer; }
-                }
+        // EN: Every preview shape counts, each placed by its controller: a modular or repeatable multiblock (Nano Forge
+        // EN: with all modules, ME Storage at full length) gets the box that holds its largest form.
+        // PT: Todas as formas de prévia contam, cada uma alinhada pelo controlador: multibloco modular ou repetível
+        // PT: (Nano Forge com todos os módulos, ME Storage no comprimento máximo) recebe a caixa da maior forma.
+        // ZH: 所有预览结构都计入，并以控制器对齐：模块化或可重复的多方块（装满模块的纳米锻炉、最长的 ME 存储）
+        // ZH: 获得能容纳其最大形态的包围盒。
+        int minX = 0, minY = 0, minZ = 0, maxX = 0, maxY = 0, maxZ = 0;
+        boolean any = false;
+        List<Object[][][]> previews = new ArrayList<>();
+        for (Object shape : shapes) previews.add((Object[][][]) call(shape, "getBlocks"));
+        Object[][][] longest = longestPreview(definition);
+        if (longest != null) previews.add(longest);
+        for (Object[][][] blocks : previews) {
+            if (blocks.length == 0 || blocks[0].length == 0 || blocks[0][0].length == 0) continue;
+            int sx = blocks.length, sy = blocks[0].length, sz = blocks[0][0].length;
+            int[] c = controller(blocks, controller);
+            minX = Math.min(minX, -c[0]); maxX = Math.max(maxX, sx - 1 - c[0]);
+            minY = Math.min(minY, -c[1]); maxY = Math.max(maxY, sy - 1 - c[1]);
+            minZ = Math.min(minZ, -c[2]); maxZ = Math.max(maxZ, sz - 1 - c[2]);
+            any = true;
+        }
+        if (!any) return null;
+        int sx = maxX - minX + 1, sy = maxY - minY + 1, sz = maxZ - minZ + 1;
+        int cx = -minX, cy = -minY, cz = -minZ;
         // Distances from the controller to the west, east, north and south sides.
         int west = cx, east = sx - 1 - cx, north = cz, south = sz - 1 - cz;
         int min = Math.min(Math.min(west, east), Math.min(north, south));
@@ -145,6 +155,33 @@ public final class GtceuMachineCatalog {
         if (min == south) return new int[] {sx, sy, sz, sx - 1 - cx, cy, sz - 1 - cz};
         if (min == west) return new int[] {sz, sy, sx, sz - 1 - cz, cy, cx};
         return new int[] {sz, sy, sx, cz, cy, sx - 1 - cx};
+    }
+
+    /** The pattern built with every repeatable aisle at its maximum, or null when that is not available. */
+    private static Object[][][] longestPreview(Object definition) {
+        try {
+            Object pattern = ((java.util.function.Supplier<?>) call(definition, "getPatternFactory")).get();
+            int[][] repetitions = (int[][]) pattern.getClass().getField("aisleRepetitions").get(pattern);
+            int[] max = new int[repetitions.length];
+            for (int i = 0; i < max.length; i++) max[i] = repetitions[i][1];
+            return (Object[][][]) pattern.getClass().getMethod("getPreview", int[].class).invoke(pattern, (Object) max);
+        } catch (Throwable unavailable) {
+            return null;
+        }
+    }
+
+    /** Controller position in a preview shape; the bottom centre of the front when it is not found. */
+    private static int[] controller(Object[][][] blocks, Block controller) throws ReflectiveOperationException {
+        Method stateOf = null;
+        for (int x = 0; x < blocks.length; x++)
+            for (int y = 0; y < blocks[0].length; y++)
+                for (int z = 0; z < blocks[0][0].length; z++) {
+                    Object info = blocks[x][y][z];
+                    if (info == null) continue;
+                    if (stateOf == null) stateOf = info.getClass().getMethod("getBlockState");
+                    if (((BlockState) stateOf.invoke(info)).is(controller)) return new int[] {x, y, z};
+                }
+        return new int[] {blocks.length / 2, 0, 0};
     }
 
     private static String keywords(Object definition, String id) {

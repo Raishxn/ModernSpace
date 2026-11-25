@@ -20,6 +20,9 @@ All notable changes to this project will be documented in this file.
 * **One creative tab**: the campus devices registered a second "Personal Space" tab with the same id, so the
   central teleporter and the other campus items went missing and the portal tooltip listed the tab twice. All
   ModernSpace items are now in a single tab.
+* **Full-size machine plots**: a plot is now sized for the largest form of its multiblock, from every preview shape
+  and from the pattern with each repeatable layer at its maximum, so modular machines (all modules or upgrades) and
+  repeatable ones (such as the ME Storage at full length) fit in their plot.
 
 ## [0.3.1] - 2026-10-11
 
