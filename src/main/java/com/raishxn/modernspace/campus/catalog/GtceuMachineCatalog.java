@@ -167,7 +167,15 @@ public final class GtceuMachineCatalog {
             Object pattern = ((java.util.function.Supplier<?>) call(definition, "getPatternFactory")).get();
             int[][] repetitions = (int[][]) pattern.getClass().getField("aisleRepetitions").get(pattern);
             int[] max = new int[repetitions.length];
-            for (int i = 0; i < max.length; i++) max[i] = repetitions[i][1];
+            boolean repeatable = false;
+            for (int i = 0; i < max.length; i++) {
+                max[i] = repetitions[i][1];
+                repeatable |= repetitions[i][1] > repetitions[i][0];
+            }
+            // EN: Building a preview is slow for megastructures; only patterns with a repeatable layer need it.
+            // PT: Montar a prévia é lento nas megaestruturas; só padrões com camada repetível precisam dela.
+            // ZH: 巨构的预览构建很慢；只有含可重复层的结构才需要。
+            if (!repeatable) return null;
             return (Object[][][]) pattern.getClass().getMethod("getPreview", int[].class).invoke(pattern, (Object) max);
         } catch (Throwable unavailable) {
             return null;
