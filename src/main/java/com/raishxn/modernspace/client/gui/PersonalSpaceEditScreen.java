@@ -66,7 +66,6 @@ public class PersonalSpaceEditScreen extends Screen {
     private int currentPage = 0;
     private Widget page1Container, page2Container;
     private WButton moreSettingsButton, presetScrollLeft, presetScrollRight, backToMainButton;
-    private WButton plotPresetButton, plotPresetClear;
     private int presetScrollOffset = 0;
     private WPreviewPanel previewPanel;
     private Widget presetEditor;
@@ -401,8 +400,24 @@ public class PersonalSpaceEditScreen extends Screen {
                     WButton.DEFAULT_COLOR, null, () -> {
                         presetEntry.setText(finalPreset);
                         presetEntry.textField.moveCursorToStart();
+                        if (desiredConfig.getAllowGenerationChanges()) desiredConfig.setPlotPreset("");
                         if (!PersonalSpaceSettings.hasExtendedSettings(finalPreset)) clearExtendedPresetInputs();
                     });
+            presetButtons.add(button);
+            rootWidget.addChild(button);
+            number++;
+        }
+        // EN: Campus presets continue the numbered row (5, 6, 7…) instead of a separate "Plots / campus" row.
+        // PT: Os presets de campus continuam a fila numerada (5, 6, 7…) em vez de uma linha "Plots / campus" à parte.
+        // ZH: 园区预设接在编号行后面（5、6、7…），不再单独占一行"地块 / 园区"。
+        for (var campusPreset : campusPresets()) {
+            WButton button = new WButton(new Rectangle(0, ySize, 24, 18), Integer.toString(number), true,
+                    WButton.DEFAULT_COLOR, null, () -> {
+                        if (!desiredConfig.getAllowGenerationChanges()) return;
+                        desiredConfig.setPlotPreset(com.raishxn.modernspace.campus.plot.PlotPresetShare.encode(campusPreset));
+                    });
+            button.tooltip = campusPresetName(campusPreset);
+            button.enabled = desiredConfig.getAllowGenerationChanges();
             presetButtons.add(button);
             rootWidget.addChild(button);
             number++;
@@ -424,22 +439,6 @@ public class PersonalSpaceEditScreen extends Screen {
         moreSettingsButton.tooltip = tr("gui.personalWorld.moreSettings.tooltip");
         rootWidget.addChild(moreSettingsButton);
         updatePresetButtonPositions();
-        ySize += 20;
-
-        // Plot and campus presets (street grids, Woodland, Quartz Works, Pink Dream), chosen only at creation.
-        plotPresetButton = new WButton(new Rectangle(0, ySize, 148, 18), plotPresetLabel(), true, WButton.DEFAULT_COLOR,
-                null, this::openPlotEditor);
-        plotPresetButton.tooltip = tr(desiredConfig.getAllowGenerationChanges()
-                ? "gui.personalWorld.plotPreset.tooltip" : "gui.personalWorld.plotPreset.locked");
-        rootWidget.addChild(plotPresetButton);
-        plotPresetClear = new WButton(new Rectangle(150, ySize, 18, 18), "", false, 0, Icons.SMALL_CROSS, () -> {
-            desiredConfig.setPlotPreset("");
-            plotPresetButton.text = plotPresetLabel();
-            plotPresetClear.visible = false;
-        });
-        plotPresetClear.tooltip = tr("gui.personalWorld.plotPreset.clear");
-        plotPresetClear.visible = desiredConfig.isPlotWorld() && desiredConfig.getAllowGenerationChanges();
-        rootWidget.addChild(plotPresetClear);
         ySize += 20;
 
         presetEditor = new Widget();
@@ -601,31 +600,19 @@ public class PersonalSpaceEditScreen extends Screen {
         guiTop = (height - ySize) / 2;
     }
 
-    private String plotPresetLabel() {
-        var plot = desiredConfig.plotSettings();
-        if (plot == null) return tr("gui.personalWorld.plotPreset.none");
-        if (plot.isCampus()) {
-            String name = plot.roadStyle() == com.raishxn.modernspace.campus.plot.PlotSettings.RoadStyle.CAMPUS_FILE
-                    ? tr(com.raishxn.modernspace.campus.plot.CampusPresetRegistry.get(plot.campusPresetId()).nameKey())
-                    : tr("modernspace.create_world_plot.campus_preset");
-            return tr("gui.personalWorld.plotPreset.campus", name);
-        }
-        return tr("gui.personalWorld.plotPreset.grid", plot.plotChunks(), plot.plotChunks());
+    private static List<com.raishxn.modernspace.campus.plot.PlotSettings> campusPresets() {
+        List<com.raishxn.modernspace.campus.plot.PlotSettings> list = new ArrayList<>();
+        list.add(com.raishxn.modernspace.campus.plot.PlotSettings.plannedCampus());
+        for (var definition : com.raishxn.modernspace.campus.plot.CampusPresetRegistry.creationDefinitions())
+            list.add(com.raishxn.modernspace.campus.plot.PlotSettings.fileCampus(definition.id()));
+        return list;
     }
 
-    private void openPlotEditor() {
-        if (minecraft == null) return;
-        var current = desiredConfig.plotSettings();
-        if (!desiredConfig.getAllowGenerationChanges()) {
-            // Existing world: show its recipe read-only.
-            if (current != null) com.raishxn.modernspace.client.campus.info.PlotWorldInfoScreen.open(current);
-            return;
-        }
-        minecraft.setScreen(new com.raishxn.modernspace.client.campus.CreateWorldPlotScreen(this,
-                current == null ? com.raishxn.modernspace.campus.plot.PlotSettings.defaults() : current,
-                Component.translatable("gui.personalWorld.plotPreset.title"),
-                Component.translatable("gui.personalWorld.plotPreset.use"),
-                chosen -> desiredConfig.setPlotPreset(com.raishxn.modernspace.campus.plot.PlotPresetShare.encode(chosen))));
+    private String campusPresetName(com.raishxn.modernspace.campus.plot.PlotSettings plot) {
+        String name = plot.roadStyle() == com.raishxn.modernspace.campus.plot.PlotSettings.RoadStyle.CAMPUS_FILE
+                ? tr(com.raishxn.modernspace.campus.plot.CampusPresetRegistry.get(plot.campusPresetId()).nameKey())
+                : tr("modernspace.create_world_plot.campus_preset");
+        return tr("gui.personalWorld.plotPreset.campus", name);
     }
 
     private WButton stepButton(int x, Runnable action, String key) {
