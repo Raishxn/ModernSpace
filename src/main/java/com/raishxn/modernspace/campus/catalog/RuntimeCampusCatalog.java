@@ -15,10 +15,11 @@ import java.util.List;
 /**
  * Machine catalog used by the campus presets.
  * EN: built from the GregTech multiblocks when a GTCEu build with the multiblockpro structure API (GTO) is
- *     loaded; otherwise empty, and the campus keeps its streets, halls and landscape without machine plots.
- * PT: montado a partir dos multiblocos do GregTech quando há um GTCEu com a API multiblockpro (GTO);
- *     senão fica vazio e o campus mantém ruas, halls e paisagem, sem lotes de máquina.
- * ZH: 加载带 multiblockpro 结构 API 的 GTCEu（GTO）时由格雷多方块生成；否则为空，园区只保留道路、厂房和景观。
+ *     loaded, or from each multiblock's preview shape on upstream GTCEu; without GTCEu it is empty and the
+ *     campus keeps its streets, halls and landscape without machine plots.
+ * PT: montado a partir dos multiblocos do GregTech quando há um GTCEu com a API multiblockpro (GTO), ou da forma
+ *     de prévia de cada multibloco no GTCEu normal; sem GTCEu fica vazio e o campus mantém ruas, halls e paisagem, sem lotes de máquina.
+ * ZH: 加载带 multiblockpro 结构 API 的 GTCEu（GTO）时由格雷多方块生成，原版 GTCEu 下取各多方块的预览结构；没有 GTCEu 时为空，园区只保留道路、厂房和景观。
  */
 public final class RuntimeCampusCatalog {
     private static volatile JsonObject empty;
@@ -58,12 +59,26 @@ public final class RuntimeCampusCatalog {
                 available = false;
             }
         }
+        if (upstreamAvailable()) return GtceuMachineCatalog.json();
         return emptyCatalog();
+    }
+
+    private static volatile Boolean upstream;
+
+    /** Upstream GTCEu (7.x): machine plots from preview shapes instead of the multiblockpro API. */
+    private static boolean upstreamAvailable() {
+        Boolean result = upstream;
+        if (result == null) {
+            result = ModList.get() != null && ModList.get().isLoaded("gtceu") && GtceuMachineCatalog.available();
+            if (result) ModernSpace.LOGGER.info("[campus] Upstream GTCEu: machine plots come from preview shapes");
+            upstream = result;
+        }
+        return result;
     }
 
     @SuppressWarnings("unchecked")
     public static List<String> skipped() {
-        if (!gregTechAvailable()) return List.of();
+        if (!gregTechAvailable()) return upstreamAvailable() ? GtceuMachineCatalog.skipped() : List.of();
         try { return (List<String>) bridge("skipped"); } catch (Throwable error) { return List.of(); }
     }
 
