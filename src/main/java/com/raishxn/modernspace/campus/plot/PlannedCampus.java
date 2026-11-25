@@ -1,11 +1,7 @@
 package com.raishxn.modernspace.campus.plot;
 
 import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
-import java.io.InputStreamReader;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -66,17 +62,7 @@ public final class PlannedCampus {
         public boolean contains(int px, int pz) { return px >= x && px < x + width && pz >= z && pz < z + depth; }
     }
     public record District(String stage, int minZ, int maxZ) {}
-    private record Machine(String id, String stage, int tier, int width, int height, int depth,
-                           int cx, int cy, int cz, String pattern, int slotIndex, String theme, String displayNameKey,
-                           String leader) {
-        /** The machine its group is ordered and placed by: the leader for a module, itself otherwise. */
-        String anchor() { return leader.isEmpty() ? id : leader; }
-    }
-    private record Placement(Machine machine, Bounds court) {}
-    private record Candidate(Bounds court, Bounds free, int radius, int taxi, int slack, int waste) {}
-    private record Connection(Street street, int length, int orientation, int edge, int target) {}
-    private record Packing(List<Placement> placements, List<Street> streets, List<Bounds> residuals, List<Bounds> greenways, int halfWidth, int halfDepth) {}
-    private record Street(boolean vertical, int axis, int start, int end, int halfWidth) {
+    record Street(boolean vertical, int axis, int start, int end, int halfWidth) {
         int perpendicular(int x, int z) { return vertical ? x : z; }
         int along(int x, int z) { return vertical ? z : x; }
         int distance(int x, int z) { return fold(perpendicular(x, z) - axis); }
@@ -144,7 +130,7 @@ public final class PlannedCampus {
     private static final class Holder { private static final Plan PLAN = build(); }
 
     private PlannedCampus() {}
-    private static int fold(int coordinate) { return coordinate >= 0 ? coordinate : -1 - coordinate; }
+    static int fold(int coordinate) { return coordinate >= 0 ? coordinate : -1 - coordinate; }
     public static Set<String> materials() { return MATERIALS; }
     public static List<Plot> plots() { return Holder.PLAN.plots; }
     public static List<Workshop> workshops() { return Holder.PLAN.workshops; }
@@ -456,243 +442,17 @@ public final class PlannedCampus {
         return value ^ (value >>> 33);
     }
     private static JsonObject catalog() { return com.raishxn.modernspace.campus.catalog.RuntimeCampusCatalog.json(); }
-    private static List<Machine> machines(JsonObject catalog) {
-        List<Machine> result = new ArrayList<>();
-        Set<String> ids = new LinkedHashSet<>();
-        for (var element : catalog.getAsJsonArray("reservations")) {
-            JsonObject json = element.getAsJsonObject();
-            var size = json.getAsJsonArray("size"); var anchor = json.getAsJsonArray("groundOffset");
-            String id = json.get("id").getAsString(), stage = json.get("stage").getAsString();
-            int w = size.get(0).getAsInt(), h = size.get(1).getAsInt(), d = size.get(2).getAsInt();
-            int cx = anchor.get(0).getAsInt(), cy = anchor.get(1).getAsInt(), cz = anchor.get(2).getAsInt();
-            if (!ids.add(id) || w < 1 || h < 1 || d < 1 || cx < 0 || cx >= w || cy < 0 || cy >= h || cz < 0 || cz >= d
-                    || !json.get("frontFacing").getAsString().equals("north")) throw new IllegalArgumentException("Invalid planned machine " + id);
-            int tier = json.get("placementTier").getAsInt();
-            int copies = json.get("copies").getAsInt();
-            if (copies < 1 || copies > 16 || tier < 0 || tier > 14) throw new IllegalArgumentException("Invalid campus allocation " + id);
-            for (int slot = 0; slot < copies; slot++) result.add(new Machine(id, stage, tier, w, h, d, cx, cy, cz,
-                    json.get("patternResource").getAsString(), slot, json.get("theme").getAsString(),
-                    json.has("displayNameKey") ? json.get("displayNameKey").getAsString() : "",
-                    json.has("groupLeader") ? json.get("groupLeader").getAsString() : ""));
-        }
-        // EN: A module takes its leader's tier, so the group is placed together, right after the leader.
-        // PT: O módulo assume o tier da máquina principal, para o grupo ser posto junto, logo depois dela.
-        // ZH: 模块采用主机的等级，使整组紧随主机一起放置。
-        Map<String, Integer> leaderTier = new HashMap<>();
-        for (Machine machine : result) if (machine.leader.isEmpty()) leaderTier.putIfAbsent(machine.id, machine.tier);
-        result.replaceAll(m -> m.leader.isEmpty() || !leaderTier.containsKey(m.leader) ? m
-                : new Machine(m.id, m.stage, leaderTier.get(m.leader), m.width, m.height, m.depth, m.cx, m.cy, m.cz,
-                        m.pattern, m.slotIndex, m.theme, m.displayNameKey, m.leader));
-        return List.copyOf(result);
+    private static void placeCourtyard(PlannedCampusPacker.Placement placement, List<Plot> plots) {
+        PlannedCampusCatalog.Machine machine = placement.machine();
+        int x = placement.court().minX + 8, z = placement.court().minZ + 12;
+        plots.add(new Plot(machine.id(), machine.stage(), x, z, machine.width(), machine.height(), machine.depth(),
+                x + machine.cx(), machine.cy() + 1, z + machine.cz(), machine.pattern(), machine.slotIndex(),
+                machine.theme(), machine.displayNameKey()));
     }
-    private static Bounds expand(Bounds bounds, int margin) {
-        return new Bounds(bounds.minX - margin, bounds.minZ - margin, bounds.maxX + margin, bounds.maxZ + margin);
-    }
-    private static Bounds streetBounds(Street street) {
-        return street.vertical ? new Bounds(street.axis - street.halfWidth, street.start, street.axis + street.halfWidth - 1, street.end)
-                : new Bounds(street.start, street.axis - street.halfWidth, street.end, street.axis + street.halfWidth - 1);
-    }
-    private static boolean intersects(Bounds a, Bounds b) {
-        return a.minX <= b.maxX && a.maxX >= b.minX && a.minZ <= b.maxZ && a.maxZ >= b.minZ;
-    }
-    private static boolean encloses(Bounds outer, Bounds inner) {
-        return outer.minX <= inner.minX && outer.minZ <= inner.minZ && outer.maxX >= inner.maxX && outer.maxZ >= inner.maxZ;
-    }
-    /** Maximal empty rectangles retain both dimensions; no machine borrows another machine's depth. */
-    private static List<Bounds> subtract(List<Bounds> free, Bounds used) {
-        Set<Bounds> fragments = new LinkedHashSet<>();
-        for (Bounds bounds : free) {
-            if (!intersects(bounds, used)) { fragments.add(bounds); continue; }
-            if (used.minX > bounds.minX) fragments.add(new Bounds(bounds.minX, bounds.minZ, used.minX - 1, bounds.maxZ));
-            if (used.maxX < bounds.maxX) fragments.add(new Bounds(used.maxX + 1, bounds.minZ, bounds.maxX, bounds.maxZ));
-            if (used.minZ > bounds.minZ) fragments.add(new Bounds(bounds.minX, bounds.minZ, bounds.maxX, used.minZ - 1));
-            if (used.maxZ < bounds.maxZ) fragments.add(new Bounds(bounds.minX, used.maxZ + 1, bounds.maxX, bounds.maxZ));
-        }
-        List<Bounds> result = new ArrayList<>(fragments);
-        result.removeIf(inner -> fragments.stream().anyMatch(outer -> !outer.equals(inner) && encloses(outer, inner)));
-        return result;
-    }
-    private static void serviceRing(List<Street> streets, Bounds court, int north, int side, int south) {
-        addStreet(streets, new Street(false, court.minZ + north / 2, court.minX, court.maxX, north / 2));
-        addStreet(streets, new Street(true, court.minX + side / 2, court.minZ, court.maxZ, side / 2));
-        addStreet(streets, new Street(true, court.maxX + 1 - side / 2, court.minZ, court.maxZ, side / 2));
-        addStreet(streets, new Street(false, court.maxZ + 1 - south / 2, court.minX, court.maxX, south / 2));
-    }
-    /** Largest coherent gardens first; unlike maximal packing spaces, these rectangles never overlap. */
-    private static List<Bounds> gardenRectangles(List<Bounds> free) {
-        List<Bounds> pending = new ArrayList<>(free), gardens = new ArrayList<>();
-        Comparator<Bounds> order = Comparator.comparingInt((Bounds bounds) -> bounds.width() * bounds.depth()).reversed()
-                .thenComparing(Comparator.comparingInt((Bounds bounds) -> Math.min(bounds.width(), bounds.depth())).reversed())
-                .thenComparingInt(Bounds::minX).thenComparingInt(Bounds::minZ);
-        while (!pending.isEmpty()) {
-            Bounds garden = pending.stream().min(order).orElseThrow();
-            gardens.add(garden); pending = subtract(pending, garden);
-        }
-        return List.copyOf(gardens);
-    }
-    private static List<Street> backbone(int half, List<Workshop> pads) {
-        List<Street> streets = new ArrayList<>();
-        // Every boulevard is a 64-block public reservation: road, planted belts and four-block outer walks.
-        for (int axis : new int[] {0, -400, 400}) {
-            int roadHalf = axis == 0 ? 16 : 12;
-            addStreet(streets, new Street(true, axis, -half, half - 1, roadHalf));
-            addStreet(streets, new Street(false, axis, -half, half - 1, roadHalf));
-            for (int edge : new int[] {axis - 30, axis + 30}) {
-                addStreet(streets, new Street(true, edge, -half, half - 1, 2));
-                addStreet(streets, new Street(false, edge, -half, half - 1, 2));
-            }
-        }
-        for (int axis : new int[] {-half + 12, half - 12}) {
-            addStreet(streets, new Street(true, axis, -half, half - 1, 12));
-            addStreet(streets, new Street(false, axis, -half, half - 1, 12));
-        }
-        for (Workshop pad : pads) {
-            int axis = pad.z < 0 ? pad.z + pad.depth + 2 : pad.z - 2;
-            addStreet(streets, new Street(false, axis, Math.min(0, pad.x - 4), Math.max(0, pad.x + pad.width + 3), 2));
-        }
-        serviceRing(streets, expand(AE_BOUNDS, 4), 4, 4, 4);
-        for (Workshop pad : pads) serviceRing(streets, expand(new Bounds(pad.x, pad.z, pad.x + pad.width - 1, pad.z + pad.depth - 1), 4), 4, 4, 4);
-        for (Garden garden : AE_GARDENS) serviceRing(streets, expand(garden.bounds(), 4), 4, 4, 4);
-        return streets;
-    }
-    private static List<Bounds> greenBuffers(int half) {
-        List<Bounds> buffers = new ArrayList<>();
-        for (int axis : new int[] {0, -400, 400}) {
-            buffers.add(new Bounds(axis - 32, -half + 24, axis + 31, half - 25));
-            buffers.add(new Bounds(-half + 24, axis - 32, half - 25, axis + 31));
-        }
-        return buffers;
-    }
-    private static List<Bounds> coreReservations(List<Workshop> pads) {
-        List<Bounds> core = new ArrayList<>(); core.add(expand(AE_BOUNDS, 4));
-        for (Workshop pad : pads) core.add(expand(new Bounds(pad.x, pad.z, pad.x + pad.width - 1, pad.z + pad.depth - 1), 4));
-        for (Garden garden : AE_GARDENS) core.add(expand(garden.bounds(), 4));
-        return core;
-    }
-    /** Progression changes the actual allowed radius, rather than leaving all machines next to AE. */
-    private static int minimumRadius(int tier) {
-        return switch (tier) {
-            case 4 -> 160; case 5 -> 180; case 6 -> 200; case 7 -> 220; case 8 -> 240;
-            case 9 -> 400; case 10 -> 450; case 11 -> 500; case 12 -> 570; case 13 -> 640; case 14 -> 700;
-            default -> 0;
-        };
-    }
-    private static boolean better(Candidate a, Candidate b) {
-        if (b == null) return true;
-        if (a.radius != b.radius) return a.radius < b.radius;
-        if (a.taxi != b.taxi) return a.taxi < b.taxi;
-        if (a.slack != b.slack) return a.slack < b.slack;
-        if (a.waste != b.waste) return a.waste < b.waste;
-        return a.court.minX != b.court.minX ? a.court.minX < b.court.minX : a.court.minZ < b.court.minZ;
-    }
-    private static boolean better(Connection a, Connection b) {
-        if (b == null) return true;
-        if (a.length != b.length) return a.length < b.length;
-        if (a.orientation != b.orientation) return a.orientation < b.orientation;
-        if (a.edge != b.edge) return a.edge < b.edge;
-        return a.target < b.target;
-    }
-    /** A free rectangle edge meets a previously connected court or road; join only the nearest such contact. */
-    private static Connection connect(Bounds court, Bounds free, List<Street> streets) {
-        Connection best = null;
-        for (int side = 0; side < 4; side++) {
-            boolean vertical = side < 2, low = side == 0 || side == 2;
-            int edge = vertical ? (low ? court.minX : court.maxX) : low ? court.minZ : court.maxZ;
-            int freeEdge = vertical ? (low ? free.minX : free.maxX) : low ? free.minZ : free.maxZ;
-            if (edge != freeEdge) continue;
-            int courtStart = vertical ? court.minZ : court.minX, courtEnd = vertical ? court.maxZ : court.maxX;
-            int freeStart = vertical ? free.minZ : free.minX, freeEnd = vertical ? free.maxZ : free.maxX;
-            for (Street street : streets) {
-                Bounds road = streetBounds(street);
-                int contact = vertical ? (low ? road.maxX : road.minX) : low ? road.maxZ : road.minZ;
-                if (contact != edge + (low ? -1 : 1)) continue;
-                int start = Math.max(freeStart, vertical ? road.minZ : road.minX);
-                int end = Math.min(freeEnd, vertical ? road.maxZ : road.maxX);
-                if (start > end) continue;
-                int target = Math.max(start, Math.min(end, courtStart));
-                int origin = Math.max(courtStart, Math.min(courtEnd, target)), length = Math.abs(target - origin);
-                Street branch = length == 0 ? null : new Street(vertical, edge + (low ? 2 : -1), Math.min(target, origin), Math.max(target, origin), 2);
-                Connection candidate = new Connection(branch, length, vertical ? 0 : 1, edge, target);
-                if (better(candidate, best)) best = candidate;
-            }
-        }
-        if (best == null) throw new IllegalStateException("Campus court has no connected packing edge");
-        return best;
-    }
-    private static Packing pack(List<Machine> machines, List<Workshop> pads, int half) {
-        List<Street> streets = backbone(half, pads);
-        List<Bounds> buffers = greenBuffers(half), core = coreReservations(pads);
-        List<Bounds> free = new ArrayList<>(List.of(new Bounds(-half + 24, -half + 24, half - 25, half - 25)));
-        for (Bounds buffer : buffers) free = subtract(free, buffer);
-        for (Street street : streets) free = subtract(free, streetBounds(street));
-        for (Bounds reservation : core) free = subtract(free, reservation);
-        List<Bounds> publicGreen = new ArrayList<>(buffers);
-        for (Street street : streets) publicGreen = subtract(publicGreen, streetBounds(street));
-        for (Bounds reservation : core) publicGreen = subtract(publicGreen, reservation);
-        List<Placement> placements = new ArrayList<>();
-        Map<String, Bounds> placedLeaders = new HashMap<>();
-        for (Machine machine : machines) {
-            int width = machine.width + 16, depth = machine.depth + 20; Candidate best = null;
-            Bounds leaderCourt = machine.leader.isEmpty() ? null : placedLeaders.get(machine.leader);
-            for (Bounds space : free) {
-                if (width > space.width() || depth > space.depth()) continue;
-                for (int x : new int[] {space.minX, space.maxX - width + 1}) for (int z : new int[] {space.minZ, space.maxZ - depth + 1}) {
-                    int cx = Math.abs(2 * x + width - 1), cz = Math.abs(2 * z + depth - 1);
-                    if (Math.max(cx, cz) < 2 * minimumRadius(machine.tier)) continue;
-                    int radius = Math.max(cx, cz), taxi = cx + cz;
-                    if (leaderCourt != null) {
-                        // A module goes as close to its leader as the free space allows.
-                        radius = Math.abs(2 * x + width - 1 - (leaderCourt.minX + leaderCourt.maxX))
-                                + Math.abs(2 * z + depth - 1 - (leaderCourt.minZ + leaderCourt.maxZ));
-                    }
-                    Candidate candidate = new Candidate(new Bounds(x, z, x + width - 1, z + depth - 1), space, radius, taxi,
-                            Math.min(space.width() - width, space.depth() - depth), space.width() * space.depth() - width * depth);
-                    if (better(candidate, best)) best = candidate;
-                }
-            }
-            if (best == null) {
-                com.raishxn.modernspace.ModernSpace.LOGGER.warn("[campus] No free court for {} (slot {}, {}x{}x{}); skipped", machine.id, machine.slotIndex, machine.width, machine.height, machine.depth);
-                continue;
-            }
-            Connection connection;
-            try { connection = connect(best.court, best.free, streets); }
-            catch (IllegalStateException error) {
-                com.raishxn.modernspace.ModernSpace.LOGGER.warn("[campus] {} has no road access; skipped", machine.id);
-                continue;
-            }
-            free = subtract(free, best.court);
-            if (connection.street != null) { addStreet(streets, connection.street); free = subtract(free, streetBounds(connection.street)); }
-            serviceRing(streets, best.court, 4, 4, 4);
-            placements.add(new Placement(machine, best.court));
-            if (machine.leader.isEmpty()) placedLeaders.putIfAbsent(machine.id, best.court);
-        }
-        List<Bounds> greenways = gardenRectangles(publicGreen), residuals = new ArrayList<>(greenways);
-        residuals.addAll(gardenRectangles(free));
-        return new Packing(List.copyOf(placements), List.copyOf(streets), List.copyOf(residuals), greenways, half, half);
-    }
-    private static Packing packing(List<Machine> machines, List<Workshop> pads) {
-        Map<String, Machine> byId = new HashMap<>();
-        for (Machine machine : machines) byId.putIfAbsent(machine.id, machine);
-        java.util.function.Function<Machine, Machine> anchor = m -> byId.getOrDefault(m.anchor(), m);
-        List<Machine> ordered = machines.stream().sorted(Comparator.comparingInt(Machine::tier)
-                .thenComparing(Comparator.comparingInt((Machine m) -> (anchor.apply(m).width + 16) * (anchor.apply(m).depth + 20)).reversed())
-                .thenComparing(Comparator.comparingInt((Machine m) -> Math.max(anchor.apply(m).width, anchor.apply(m).depth)).reversed())
-                .thenComparing(Machine::anchor)
-                .thenComparing(m -> m.leader.isEmpty() ? 0 : 1)
-                .thenComparing(Machine::id).thenComparingInt(Machine::slotIndex)).toList();
-        Packing packing = pack(ordered, pads, 1000);
-        if (packing != null) return packing;
-        throw new IllegalStateException("Campus catalog cannot fit the 2000-block park island");
-    }
-    private static void placeCourtyard(Placement placement, List<Plot> plots) {
-        Machine machine = placement.machine; int x = placement.court.minX + 8, z = placement.court.minZ + 12;
-        plots.add(new Plot(machine.id, machine.stage, x, z, machine.width, machine.height, machine.depth,
-                x + machine.cx, machine.cy + 1, z + machine.cz, machine.pattern, machine.slotIndex, machine.theme,
-                machine.displayNameKey));
-    }
-    private static void addStreet(List<Street> streets, Street street) { if (!streets.contains(street)) streets.add(street); }
-    private static Plan build() {
-        JsonObject catalog = catalog(); List<Machine> machines = machines(catalog);
+    private static Plan build() { return build(catalog()); }
+    static List<Plot> planPlots(JsonObject catalog) { return build(catalog).plots; }
+    private static Plan build(JsonObject catalog) {
+        List<PlannedCampusCatalog.Machine> machines = PlannedCampusCatalog.machines(catalog);
         Map<String, Integer> tiers = new HashMap<>();
         for (var element : catalog.getAsJsonArray("machines")) {
             JsonObject machine = element.getAsJsonObject();
@@ -703,12 +463,12 @@ public final class PlannedCampus {
         int shared = catalog.getAsJsonArray("effectiveSharedIds").size();
         List<Workshop> pads = List.of(new Workshop("early", -216, -216, 128, 128), new Workshop("early", 88, -216, 128, 128),
                 new Workshop("early", -216, 88, 128, 128), new Workshop("early", 88, 88, 128, 128));
-        Packing packing = packing(machines, pads);
-        Bounds bounds = new Bounds(-packing.halfWidth, -packing.halfDepth, packing.halfWidth - 1, packing.halfDepth - 1);
+        PlannedCampusPacker.Packing packing = PlannedCampusPacker.packing(machines, pads);
+        Bounds bounds = new Bounds(-packing.halfWidth(), -packing.halfDepth(), packing.halfWidth() - 1, packing.halfDepth() - 1);
         // Every interior column belongs to this one continuous island. Only its outside is void.
         List<Bounds> islands = List.of(bounds);
-        List<Plot> plots = new ArrayList<>(); List<Street> streets = new ArrayList<>(packing.streets); List<District> districts = new ArrayList<>();
-        for (Placement placement : packing.placements) placeCourtyard(placement, plots);
+        List<Plot> plots = new ArrayList<>(); List<Street> streets = new ArrayList<>(packing.streets()); List<District> districts = new ArrayList<>();
+        for (PlannedCampusPacker.Placement placement : packing.placements()) placeCourtyard(placement, plots);
         for (String stage : List.of("early", "mid", "late")) {
             var stagePlots = plots.stream().filter(plot -> plot.stage.equals(stage)).toList();
             if (stagePlots.isEmpty()) continue;
@@ -748,7 +508,7 @@ public final class PlannedCampus {
         }
         // The packing residuals are disjoint and already exclude every full machine/service court.
         // Fill their complete area: large connected gardens and narrower continuous planted galleries.
-        for (Bounds residual : packing.residuals) reserveLandscape(landscapes, residual, gardenTheme(residual, plots));
+        for (Bounds residual : packing.residuals()) reserveLandscape(landscapes, residual, gardenTheme(residual, plots));
         for (Tree tree : trees) index(treeIndex, new Bounds(tree.x - 2, tree.z - 2, tree.x + 2, tree.z + 2), tree);
         for (Lamp lamp : lamps) index(lampIndex, new Bounds(lamp.x - 3, lamp.z - 3, lamp.x + 3, lamp.z + 3), lamp);
         for (Landscape landscape : landscapes) index(landscapeIndex, landscape.bounds, landscape);
