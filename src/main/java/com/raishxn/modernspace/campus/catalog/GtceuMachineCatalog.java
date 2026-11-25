@@ -46,7 +46,11 @@ public final class GtceuMachineCatalog {
         JsonObject result = cached;
         if (result != null) return result;
         synchronized (GtceuMachineCatalog.class) {
-            if (cached == null) cached = build();
+            if (cached == null) cached = DiskCache.load(FORMAT);
+            if (cached == null) {
+                cached = build();
+                DiskCache.save(FORMAT, cached);
+            }
             return cached;
         }
     }

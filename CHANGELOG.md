@@ -29,6 +29,10 @@ All notable changes to this project will be documented in this file.
 * **Annex for oversized machines**: on a file preset (Quartz Works, Pink Dream) a multiblock no hall can hold, such as
   a megastructure, is no longer skipped: it gets an open-air annex of its own size against the campus edge nearest to
   the halls of its stage.
+* **Faster dimension menu**: the campus machine catalog is saved in `config/modernspace/campus_catalog.json` and
+  reused until a mod jar changes, so opening the portal menu no longer rebuilds it (it took 25+ seconds).
+* **Floating portal in campus dimensions**: the arrival portal of a new plot or campus dimension was placed from the
+  generator's height estimate, before the chunk existed, and could float in the sky; the chunk is now generated first.
 
 ## [0.3.1] - 2026-10-11
 
