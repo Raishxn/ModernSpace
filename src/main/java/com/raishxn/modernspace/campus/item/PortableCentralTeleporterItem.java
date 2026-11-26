@@ -47,6 +47,15 @@ public final class PortableCentralTeleporterItem extends Item {
         return new Binding(dimension, BlockPos.of(tag.getLong("Origin")), tag.getString("Layout"));
     }
 
+    /** Stores the binding in the stack's own NBT, so it travels with the item through saves, chests and dimensions. */
+    public static void writeBinding(ItemStack stack, Binding binding) {
+        CompoundTag tag = new CompoundTag();
+        tag.putString("Dimension", binding.dimension().toString());
+        tag.putLong("Origin", binding.origin().asLong());
+        tag.putString("Layout", binding.layoutIdentity());
+        stack.getOrCreateTag().put(BINDING, tag);
+    }
+
     @Override public InteractionResultHolder<ItemStack> use(Level level, Player player, InteractionHand hand) {
         if (player instanceof ServerPlayer serverPlayer) CampusTeleportNetwork.openPortable(serverPlayer, hand);
         return InteractionResultHolder.sidedSuccess(player.getItemInHand(hand), level.isClientSide());
@@ -72,11 +81,8 @@ public final class PortableCentralTeleporterItem extends Item {
                 || !level.dimension().location().equals(device.boundDimension())) {
             message(player, "bind_centre"); return;
         }
-        CompoundTag tag = new CompoundTag();
-        tag.putString("Dimension", level.dimension().location().toString());
-        tag.putLong("Origin", origin.asLong());
-        tag.putString("Layout", CampusPlanAccess.layoutIdentity(generator.settings()));
-        player.getItemInHand(hand).getOrCreateTag().put(BINDING, tag);
+        writeBinding(player.getItemInHand(hand),
+                new Binding(level.dimension().location(), origin, CampusPlanAccess.layoutIdentity(generator.settings())));
         player.getInventory().setChanged();
         message(player, "bound", level.dimension().location().toString());
     }

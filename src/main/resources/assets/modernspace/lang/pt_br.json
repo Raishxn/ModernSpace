@@ -371,6 +371,7 @@
   "item.modernspace.plot_world_controller.usage": "Clique direito para gerenciar sua dimensão pessoal.",
   "item.modernspace.portable_central_teleporter": "Teleportador Central Portátil",
   "item.modernspace.portable_central_teleporter.bind_centre": "Clique direito no teleportador deste centro de campus para vincular novamente.",
+  "item.modernspace.portable_central_teleporter.layout_changed": "O layout do campus mudou desde o vínculo (mods ou presets atualizados). Clique direito no teleportador deste centro de campus para vincular novamente.",
   "item.modernspace.portable_central_teleporter.bound": "Campus vinculado: %s",
   "item.modernspace.portable_central_teleporter.limit": "Use apenas no campus vinculado. Clique direito em outro centro de campus para revincular.",
   "item.modernspace.portable_central_teleporter.navigation": "Clique esquerdo em um lote para selecionar; clique direito nele ou clique duplo para teleportar.",

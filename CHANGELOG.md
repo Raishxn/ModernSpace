@@ -17,6 +17,10 @@ All notable changes to this project will be documented in this file.
 * English, Portuguese (Brazil) and Simplified Chinese strings for all of the above.
 
 ### 🐛 Fixed
+* **Central teleporter binding is verified across save and reload**: tests now prove that the terminal's campus binding
+  is written to the saved chunk and read back, and that the portable teleporter keeps its binding in the item. The
+  portable one is still tied to the exact campus layout, which comes from the machine catalog; when mods change it
+  the item now says "the campus layout changed, bind again" instead of the generic bind prompt.
 * **Entering a world no longer freezes for ~40 s**: decoding the plot settings (which happens when any world loads)
   built the whole campus machine catalog on the render thread, even in worlds without a campus. The "campus frames
   fit below the world height" check now runs only when a campus dimension is created or generated.

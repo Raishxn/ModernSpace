@@ -128,9 +128,14 @@ public final class CampusTeleportNetwork {
         if (!player.isAlive() || player.isSpectator()
                 || !(player.serverLevel().getChunkSource().getGenerator() instanceof PlotChunkGenerator generator)
                 || !generator.settings().isCampus()
-                || !binding.origin().equals(new BlockPos(0, generator.settings().surfaceY() + 1, 0))
-                || !binding.layoutIdentity().equals(CampusPlanAccess.layoutIdentity(generator.settings()))) {
+                || !binding.origin().equals(new BlockPos(0, generator.settings().surfaceY() + 1, 0))) {
             PortableCentralTeleporterItem.message(player, "bind_centre"); return;
+        }
+        // EN: the layout comes from the machine catalog, so it changes when mods are added or updated; say so instead of a generic prompt.
+        // PT: o layout vem do catálogo de máquinas, então muda quando mods são adicionados ou atualizados; avisar isso em vez do pedido genérico.
+        // ZH: 布局来自机器目录，添加或更新模组时会变化；明确提示原因，而不是通用提示。
+        if (!binding.layoutIdentity().equals(CampusPlanAccess.layoutIdentity(generator.settings()))) {
+            PortableCentralTeleporterItem.message(player, "layout_changed"); return;
         }
         openSession(player, binding.origin(), null, generator, hand);
     }

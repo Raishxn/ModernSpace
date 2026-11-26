@@ -371,6 +371,7 @@
   "item.modernspace.plot_world_controller.usage": "右键管理属于自己的私人维度。",
   "item.modernspace.portable_central_teleporter": "便携中央传送器",
   "item.modernspace.portable_central_teleporter.bind_centre": "请右键当前园区正中央的中央传送器重新绑定。",
+  "item.modernspace.portable_central_teleporter.layout_changed": "自绑定以来园区布局已变化（模组或预设已更新）。请右键当前园区正中央的中央传送器重新绑定。",
   "item.modernspace.portable_central_teleporter.bound": "已绑定园区：%s",
   "item.modernspace.portable_central_teleporter.limit": "仅在绑定园区使用；可重新右键其他园区中心改绑。",
   "item.modernspace.portable_central_teleporter.navigation": "地图左键选择地块，右键该地块传送，也可双击。",

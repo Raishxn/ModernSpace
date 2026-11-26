@@ -371,6 +371,7 @@
   "item.modernspace.plot_world_controller.usage": "Right-click to manage your personal dimension.",
   "item.modernspace.portable_central_teleporter": "Portable Central Teleporter",
   "item.modernspace.portable_central_teleporter.bind_centre": "Right-click the teleporter at this campus centre to bind again.",
+  "item.modernspace.portable_central_teleporter.layout_changed": "The campus layout changed since this was bound (mods or presets updated). Right-click the teleporter at this campus centre to bind again.",
   "item.modernspace.portable_central_teleporter.bound": "Bound campus: %s",
   "item.modernspace.portable_central_teleporter.limit": "Use only in the bound campus. Right-click another campus centre to rebind.",
   "item.modernspace.portable_central_teleporter.navigation": "Left-click a plot to select; right-click that plot or double-click to teleport.",
