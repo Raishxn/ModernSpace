@@ -413,7 +413,7 @@ public final class CreateWorldPlotScreen extends Screen {
     }
     private void validate() {
         if(building) return; error=presetLoadFailed ? tr("preset_load_failed") : CommonComponents.EMPTY;
-        try { draft=candidate(); validatedPreview=draft; if (!draft.isAvailableForCreation()) error=Component.translatable("modernspace.personal_plot.retired_preset"); }
+        try { draft=candidate(); if(draft.isCampus()) draft.requireCampusFit(); validatedPreview=draft; if (!draft.isAvailableForCreation()) error=Component.translatable("modernspace.personal_plot.retired_preset"); }
         catch(RuntimeException invalid) { if (!presetLoadFailed) error=tr("invalid_settings"); }
         boolean valid=!presetLoadFailed && error.equals(CommonComponents.EMPTY);
         if(done!=null) done.active=!presetLoading && valid;

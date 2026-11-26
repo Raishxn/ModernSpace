@@ -42,16 +42,27 @@ public record PlotSettings(int plotChunks, String groundBlock, String roadBlock,
         boolean campus = roadStyle == RoadStyle.CAMPUS_WOODLAND
                 
                 || roadStyle == RoadStyle.CAMPUS_FACTORY || roadStyle == RoadStyle.CAMPUS_FILE;
+        if (campus && surfaceY - bedrockY < 9)
+            throw new IllegalArgumentException("Campus cable galleries require at least nine foundation layers");
+    }
+
+    /**
+     * Throws when the campus frames would not fit below the world height.
+     * EN: not part of the constructor, because the campus height needs the machine catalog (tens of seconds on a
+     *     first build) and decoding settings must never trigger it; call it when a campus dimension is created or generated.
+     * PT: fora do construtor, porque a altura do campus exige o catálogo de máquinas (dezenas de segundos na primeira
+     *     montagem) e decodificar as configurações nunca pode disparar isso; chamar ao criar ou gerar a dimensão do campus.
+     * ZH: 不放在构造函数中，因为园区高度需要机器目录（首次构建需数十秒），解码设置时绝不能触发；创建或生成园区维度时调用。
+     */
+    public void requireCampusFit() {
         int campusHeight = switch (roadStyle) {
             case CAMPUS_WOODLAND -> PlannedCampus.maxHeight();
             case CAMPUS_FACTORY -> FactoryCampus.maxHeight();
             case CAMPUS_FILE -> FileCampus.of(campusPresetId).maxHeight();
             default -> 0;
         };
-        if (campus && surfaceY + campusHeight > 319)
+        if (campusHeight > 0 && surfaceY + campusHeight > 319)
             throw new IllegalArgumentException("Campus frames must fit below world height");
-        if (campus && surfaceY - bedrockY < 9)
-            throw new IllegalArgumentException("Campus cable galleries require at least nine foundation layers");
     }
 
     /** Published recipes retain their original field set; file presets append an explicit stable ID. */

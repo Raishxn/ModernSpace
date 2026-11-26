@@ -58,6 +58,8 @@ public final class PersonalSpaceWorlds {
 
     public static int create(MinecraftServer server, PersonalSpaceSettings settings) {
         if (!server.isSameThread()) throw new IllegalStateException("PersonalSpace creation must run on server thread");
+        var plot = settings.plotSettings();
+        if (plot != null && plot.isCampus()) plot.requireCampusFit();
         PersonalSpaceDirectory directory = PersonalSpaceDirectory.get(server);
         int id = directory.nextId();
         if (server.getLevel(key(id)) != null) throw new IllegalStateException("PersonalSpace key in use: " + id);

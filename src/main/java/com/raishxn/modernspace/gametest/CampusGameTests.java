@@ -57,6 +57,19 @@ public final class CampusGameTests {
         helper.succeed();
     }
 
+    /** Building the generator (what level.dat decoding does) must not build the machine catalog; the first chunk does. */
+    @GameTest(template = "qa_empty", batch = "plot_codec", timeoutTicks = 40)
+    public static void campusGeneratorDoesNotBuildTheCatalogWhenCreated(GameTestHelper helper) {
+        var biome = helper.getLevel().registryAccess().registryOrThrow(net.minecraft.core.registries.Registries.BIOME)
+                .getHolderOrThrow(net.minecraft.world.level.biome.Biomes.PLAINS);
+        int before = com.raishxn.modernspace.campus.catalog.RuntimeCampusCatalog.requests();
+        new PlotChunkGenerator(biome, PlotSettings.plannedCampus());
+        new PlotChunkGenerator(biome, PlotSettings.factoryCampus());
+        helper.assertTrue(com.raishxn.modernspace.campus.catalog.RuntimeCampusCatalog.requests() == before,
+                "creating a campus generator asked for the machine catalog");
+        helper.succeed();
+    }
+
     /** Settings keep the recipe through NBT and the network buffer, and the editor rejects an unreadable one. */
     @GameTest(template = "qa_empty", batch = "plot_codec", timeoutTicks = 40)
     public static void plotPresetSurvivesSaveAndSync(GameTestHelper helper) {
@@ -74,7 +87,7 @@ public final class CampusGameTests {
         helper.succeed();
     }
 
-    private static ServerLevel create(GameTestHelper helper, PlotSettings plot) {
+    static ServerLevel create(GameTestHelper helper, PlotSettings plot) {
         var server = helper.getLevel().getServer();
         PersonalSpaceSettings settings = PersonalSpaceSettings.voidWorld();
         settings.setPlotPreset(PlotPresetShare.encode(plot));

@@ -56,12 +56,18 @@ public final class PlotChunkGenerator extends ChunkGenerator {
 
     private final Holder<Biome> biome;
     private final PlotSettings settings;
-    private final Map<String, BlockState> palette;
-    private final Map<Long, List<CampusSign>> signsByChunk;
-    private final Map<Long, Integer> signHeights;
-    private final Map<Long, CampusDevice> devicesByPosition;
-    private final Map<Long, Integer> deviceHeights;
-    private final Map<Long, List<CampusDevice>> devicesByChunk;
+    // EN: filled by init(); a campus needs the machine catalog for it, so it runs on the first generated chunk and
+    //     never while level.dat is decoded (that froze the world list for ~40 s). Written before the volatile flag.
+    // PT: preenchidos por init(); o campus precisa do catálogo de máquinas, então roda no primeiro chunk gerado e
+    //     nunca ao decodificar o level.dat (isso travava a lista de mundos por ~40 s). Escritos antes da flag volatile.
+    // ZH: 由 init() 填充；园区需要机器目录，因此在生成第一个区块时才执行，绝不在解码 level.dat 时执行（那会让世界列表卡约 40 秒）。
+    private Map<String, BlockState> palette;
+    private Map<Long, List<CampusSign>> signsByChunk;
+    private Map<Long, Integer> signHeights;
+    private Map<Long, CampusDevice> devicesByPosition;
+    private Map<Long, Integer> deviceHeights;
+    private Map<Long, List<CampusDevice>> devicesByChunk;
+    private volatile boolean ready;
     private record CampusSign(BlockPos position, List<Component> lines) {}
     private record CampusDevice(BlockPos position, PlannedCampus.Plot plot) {}
 
@@ -69,15 +75,23 @@ public final class PlotChunkGenerator extends ChunkGenerator {
         super(new FixedBiomeSource(biome));
         this.biome = biome;
         this.settings = settings;
+        if (!settings.isCampus()) init();
+    }
+
+    private void ensureReady() { if (!ready) init(); }
+
+    private synchronized void init() {
+        if (ready) return;
+        if (settings.isCampus()) settings.requireCampusFit();
         Stream<String> materials = Stream.of(settings.groundBlock(), settings.plotEdgeBlock(), settings.roadBlock(), settings.borderBlock(), settings.markerBlock(), settings.lineBlock());
         if (settings.isCampus()) materials = Stream.concat(materials, campusMaterials().stream());
         boolean authoredScene = settings.roadStyle() == PlotSettings.RoadStyle.CAMPUS_FILE
                 && CampusPresetRegistry.get(settings.campusPresetId()).engine().equals("file_scene");
-        this.palette = materials.distinct().collect(Collectors.toUnmodifiableMap(id -> id,
+        palette = materials.distinct().collect(Collectors.toUnmodifiableMap(id -> id,
                 id -> settings.isCampus() && campusMaterials().contains(id)
                         ? authoredScene ? resolveSceneMaterial(id) : resolveCampusMaterial(id) : resolveMaterial(id)));
-        this.signsByChunk = new HashMap<>(); this.signHeights = new HashMap<>();
-        this.devicesByPosition = new HashMap<>(); this.deviceHeights = new HashMap<>(); this.devicesByChunk = new HashMap<>();
+        signsByChunk = new HashMap<>(); signHeights = new HashMap<>();
+        devicesByPosition = new HashMap<>(); deviceHeights = new HashMap<>(); devicesByChunk = new HashMap<>();
         if (settings.isCampus()) {
             var fileCampus = settings.roadStyle() == PlotSettings.RoadStyle.CAMPUS_FACTORY
                     || settings.roadStyle() == PlotSettings.RoadStyle.CAMPUS_FILE
@@ -111,6 +125,7 @@ public final class PlotChunkGenerator extends ChunkGenerator {
             }
             }
         }
+        ready = true;
     }
 
     /** Configuration only accepts stable, solid, non-ticking material cubes. */
@@ -160,6 +175,7 @@ public final class PlotChunkGenerator extends ChunkGenerator {
         };
     }
     private int campusCeiling(int x, int z) {
+        ensureReady();
         int ceiling = switch (settings.roadStyle()) {
             case CAMPUS_WOODLAND -> PlannedCampus.maxDecorationYAt(settings, x, z);
             case CAMPUS_FACTORY -> FactoryCampus.maxDecorationYAt(settings, x, z);
@@ -198,6 +214,7 @@ public final class PlotChunkGenerator extends ChunkGenerator {
     @Override public int getSeaLevel() { return -63; }
     @Override public int getSpawnHeight(LevelHeightAccessor height) { return settings.surfaceY() + 1; }
     private BlockState stateAt(int x, int y, int z) {
+        ensureReady();
         CampusDevice device = devicesByPosition.get(BlockPos.asLong(x, y, z));
         if (device != null)
             return device.plot() == null ? CampusDeviceBlocks.CENTRAL_TELEPORTER.get().defaultBlockState()
@@ -249,6 +266,7 @@ public final class PlotChunkGenerator extends ChunkGenerator {
     }
 
     private void placeCampusDevices(ChunkAccess chunk) {
+        ensureReady();
         for (CampusDevice device : devicesByChunk.getOrDefault(chunk.getPos().toLong(), List.of())) {
             BlockPos pos = device.position();
             CompoundTag nbt;
@@ -263,6 +281,7 @@ public final class PlotChunkGenerator extends ChunkGenerator {
     }
 
     private void placeCampusSigns(ChunkAccess chunk) {
+        ensureReady();
         for (var sign : signsByChunk.getOrDefault(chunk.getPos().toLong(), List.of())) sign(chunk, sign);
     }
 
@@ -290,6 +309,7 @@ public final class PlotChunkGenerator extends ChunkGenerator {
     }
 
     @Override public int getBaseHeight(int x, int z, Heightmap.Types type, LevelHeightAccessor height, RandomState random) {
+        ensureReady();
         if (settings.isCampus() && !campusTerrain(x, z)) return height.getMinBuildHeight();
         int top = settings.surfaceY() + (settings.isCampus() ? campusCeiling(x, z) : 0);
         top = Math.max(top, signHeights.getOrDefault(net.minecraft.world.level.ChunkPos.asLong(x, z), top));

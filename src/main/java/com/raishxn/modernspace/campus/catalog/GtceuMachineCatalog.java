@@ -46,13 +46,30 @@ public final class GtceuMachineCatalog {
         JsonObject result = cached;
         if (result != null) return result;
         synchronized (GtceuMachineCatalog.class) {
-            if (cached == null) cached = DiskCache.load(FORMAT);
+            List<String> ids = multiblockIds();
+            if (cached == null) cached = DiskCache.load(FORMAT, ids);
             if (cached == null) {
+                ModernSpace.LOGGER.warn("[campus] Building the machine catalog from {} multiblock previews (first run for these mods; "
+                        + "this can take a minute and is cached afterwards)", ids.size());
                 cached = build();
-                DiskCache.save(FORMAT, cached);
+                DiskCache.save(FORMAT, ids, cached);
             }
             return cached;
         }
+    }
+
+    /** Sorted ids of every registered multiblock; cheap (no previews), used for the disk cache key. */
+    static List<String> multiblockIds() {
+        List<String> ids = new ArrayList<>();
+        try {
+            Class<?> multiClass = Class.forName("com.gregtechceu.gtceu.api.machine.MultiblockMachineDefinition");
+            Object machines = Class.forName("com.gregtechceu.gtceu.api.registry.GTRegistries").getField("MACHINES").get(null);
+            for (Object definition : (Iterable<?>) machines) if (multiClass.isInstance(definition)) ids.add(id(definition));
+        } catch (Throwable error) {
+            ModernSpace.LOGGER.warn("[campus] Could not list multiblock ids: {}", error.toString());
+        }
+        ids.sort(String::compareTo);
+        return ids;
     }
 
     public static synchronized List<String> skipped() { return List.copyOf(skipped); }

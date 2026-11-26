@@ -17,6 +17,12 @@ All notable changes to this project will be documented in this file.
 * English, Portuguese (Brazil) and Simplified Chinese strings for all of the above.
 
 ### 🐛 Fixed
+* **Entering a world no longer freezes for ~40 s**: decoding the plot settings (which happens when any world loads)
+  built the whole campus machine catalog on the render thread, even in worlds without a campus. The "campus frames
+  fit below the world height" check now runs only when a campus dimension is created or generated.
+* **Machine catalog cache survives rebuilds**: the disk cache key is now the mod ids and versions plus the sorted list
+  of multiblock ids and the catalog format, instead of every jar's size and modification time, so rebuilding a dev
+  jar no longer throws the cache away. A first build is logged as a warning.
 * **One creative tab**: the campus devices registered a second "Personal Space" tab with the same id, so the
   central teleporter and the other campus items went missing and the portal tooltip listed the tab twice. All
   ModernSpace items are now in a single tab.

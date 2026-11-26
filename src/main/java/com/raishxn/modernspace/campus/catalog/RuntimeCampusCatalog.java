@@ -27,8 +27,12 @@ public final class RuntimeCampusCatalog {
     /** Java 21 bridge in the gto source set; reached reflectively so the Java 17 code never links GregTech. */
     private static final String BRIDGE = "com.raishxn.modernspace.campus.catalog.GtoMachineCatalog";
     private static final int FORMAT = 2;
+    private static final java.util.concurrent.atomic.AtomicInteger REQUESTS = new java.util.concurrent.atomic.AtomicInteger();
 
     private RuntimeCampusCatalog() {}
+
+    /** How many times the catalog was requested; lets tests prove that decoding settings never asks for it. */
+    public static int requests() { return REQUESTS.get(); }
 
     /** True when the GregTech structure API needed for machine plots is present. */
     public static boolean gregTechAvailable() {
@@ -51,6 +55,7 @@ public final class RuntimeCampusCatalog {
     }
 
     public static JsonObject json() {
+        REQUESTS.incrementAndGet();
         if (gregTechAvailable()) {
             try {
                 return (JsonObject) bridge("json");
